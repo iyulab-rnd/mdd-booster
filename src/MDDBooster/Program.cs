@@ -35,7 +35,7 @@ namespace MDDBooster
             }
             catch (Exception e)
             {
-                ShowBot(e.Message);
+                ShowBot(e.Message, false);
             }
 #endif
         }
