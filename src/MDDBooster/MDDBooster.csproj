@@ -6,7 +6,7 @@
 		<Nullable>enable</Nullable>
 
 		<Version>0.1.0</Version>
-		<PackageId>MDD Booster</PackageId>
+		<PackageId>MDD-Booster</PackageId>
 		<Authors>side-blue</Authors>
 		<Description>MDD generator dotnet tool</Description>
 		<RepositoryUrl>https://github.com/iyulab-rnd/mdd-booster</RepositoryUrl>
