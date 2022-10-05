@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net6.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+
+		<Version>0.1.0</Version>
+		<PackageId>MDD Booster</PackageId>
+		<Authors>side-blue</Authors>
+		<Description>MDD generator dotnet tool</Description>
+		<RepositoryUrl>https://github.com/iyulab-rnd/mdd-booster</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<PackageTags>sideblue</PackageTags>
+
+		<PackAsTool>true</PackAsTool>
+		<ToolCommandName>mdd</ToolCommandName>
+		<PackageOutputPath>./nupkg</PackageOutputPath>
+	</PropertyGroup>
+</Project>

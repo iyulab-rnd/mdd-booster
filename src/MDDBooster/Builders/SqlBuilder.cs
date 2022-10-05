@@ -1,0 +1,152 @@
+﻿using System.Diagnostics;
+using System.Diagnostics.Metrics;
+using System.Net;
+using System.Text;
+
+namespace MDDBooster.Builders
+{
+    public class SqlBuilder : BuilderBase
+    {
+        public SqlBuilder(TableMeta m) : base(m)
+        {
+        }
+
+        public void Build(string basePath)
+        {
+#if DEBUG
+            if (this.meta.Name == "UserLogins")
+            {
+                
+            }
+#endif
+            var columnLines = FullColumns.Select(p => OutputColumnLIne(p));
+            var columnLinesText = string.Join(",\r\n\t", columnLines);
+
+            var indexLines = FullColumns.Where(p => p.UI).Select(p => OutputIndexLine(p));
+            var indexLinesText = string.Join(Environment.NewLine, indexLines);
+
+            var fkLines = FullColumns.Where(p => p.FK).Select(p => OutputFKLine(p));
+            var fkLinesText = string.Join(Environment.NewLine, fkLines);
+
+            var uniqueLines = GetUniqueLines(out var nullableUniqueLines);
+            var uniqueLinesText = string.Empty;
+            if (uniqueLines != null && uniqueLines.Any())
+            {
+                var line = string.Join($",{Environment.NewLine}\t", uniqueLines);
+                uniqueLinesText = $",{Environment.NewLine}\t{line}";
+            }
+            var nullableUniqueLinesText = string.Empty;
+            if (nullableUniqueLines != null && nullableUniqueLines.Any())
+            {
+                var line = string.Join($"{Environment.NewLine}", nullableUniqueLines.Select(p => $"{p}{Environment.NewLine}GO"));
+                nullableUniqueLinesText = $"{Environment.NewLine}{line}";
+            }
+
+            var code = $@"CREATE TABLE [dbo].[{Name}]
+(
+    {columnLinesText}{uniqueLinesText}
+)
+GO{nullableUniqueLinesText}";
+            var text = string.Join(Environment.NewLine, code, indexLinesText, fkLinesText);
+
+            text = text.Replace("\t", "    ");
+            var path = Path.Combine(basePath, $"{Name}.sql");
+            File.WriteAllText(path, text);
+        }
+
+        private string[] GetUniqueLines(out string[] nullableUniqueLines)
+        {
+            var list = new List<string>();
+            var nullableUniqueList = new List<string>();
+            foreach (var c in this.meta.FullColumns)
+            {
+                if (c.UQ)
+                {
+                    if (c.NN is bool notnull && notnull)
+                    {
+                        var line = $"CONSTRAINT [UK_{Name}_{c.Name}] UNIQUE NONCLUSTERED ([{c.Name}])";
+                        list.Add(line);
+                    }
+                    else
+                    {
+                        var line = $"CREATE UNIQUE NONCLUSTERED INDEX [IDX_{Name}_{c.Name}] ON [{Name}]([{c.Name}]) WHERE [{c.Name}] IS NOT NULL";
+                        nullableUniqueList.Add(line);
+                    }
+                }
+            }
+
+            nullableUniqueLines = nullableUniqueList.ToArray();
+
+            var uniqueMultiples = this.meta.GetUniqueMultiples();
+            if (uniqueMultiples.Any() != true) return list.ToArray();
+
+            foreach (var uniqueMultiple in uniqueMultiples)
+            {
+                var nm = string.Join(string.Empty, uniqueMultiple);
+                var fields = uniqueMultiple.Select(p => $"[{p}] ASC");
+                var fieldsText = string.Join(", ", fields);
+                var line = $"CONSTRAINT [UK_{Name}_{nm}] UNIQUE NONCLUSTERED ({fieldsText})";
+                list.Add(line); 
+            }
+
+            return list.ToArray();
+        }
+
+        private object OutputFKLine(ColumnMeta c)
+        {
+            if (c.Name.Contains('_') != true) throw new NotImplementedException($"OutputFKLine, {c.Name}");
+
+            var fkTable = c.Name.Left("_");
+            var cName = c.Name.Right("_", true);
+            var code = $@"ALTER TABLE [dbo].[{Name}] ADD CONSTRAINT [FK_{Name}_{c.Name}] FOREIGN KEY ([{c.Name}])
+REFERENCES [dbo].[{fkTable}]([{cName}])
+ON DELETE CASCADE
+GO";
+            return code;
+        }
+
+        private string OutputIndexLine(ColumnMeta c)
+        {
+            return $@"CREATE NONCLUSTERED INDEX [IX_{Name}_{c.Name}] ON [{Name}]([{c.Name}] ASC)
+GO";
+        }
+
+        private static string OutputColumnLIne(ColumnMeta c)
+        {
+            var systemType = c.GetSystemType();
+            var typeText = c.GetSqlType();
+            if (c.GetSize() is string size)
+            {
+                typeText += $"({size.ToUpper()})";
+            }
+
+            if (c.PK) c.NN = true;
+
+            var notnullText = c.NN is null || (bool)c.NN == false ? "NULL" : "NOT NULL";
+            var output = $"[{c.Name}] {typeText} {notnullText}";
+
+            string? defaultValue = c.Default;
+            if (c.PK)
+            {
+                output += " PRIMARY KEY";
+                if (defaultValue == null && c.GetSystemType() == typeof(Guid))
+                {
+                    defaultValue = "NEWID()";
+                }
+            }
+
+            if (defaultValue == null && c.NN != null && (bool)c.NN)
+            {
+                if (systemType == typeof(DateTime))
+                {
+                    defaultValue = "GETDATE()";
+                }
+            }
+
+            if (string.IsNullOrEmpty(defaultValue) != true)
+                output += $" DEFAULT {defaultValue}";
+
+            return output;
+        }
+    }
+}
