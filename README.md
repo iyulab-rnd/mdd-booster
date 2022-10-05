@@ -1,1 +1,1 @@
-# mdd-booster
+# MDD Boster
