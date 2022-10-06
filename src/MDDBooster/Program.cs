@@ -10,6 +10,8 @@ using System.Text.Json;
 args = new string[] { @"D:/data/Plands/Plands.Core/data" };
 #endif
 
+if (args.Length < 1) args = new string[] { Environment.CurrentDirectory };
+
 var filePath = Path.Combine(args[0], "settings.json");
 if (File.Exists(filePath) != true)
 {
