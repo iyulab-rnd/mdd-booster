@@ -1,112 +1,43 @@
-﻿using System.Reflection;
+﻿using MDDBooster;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using System.Reflection;
+using System.Text.Json;
 
-namespace MDDBooster
+#if DEBUG
+args = new string[] { @"D:/data/Plands/Plands.Core/data" };
+#endif
+
+var filePath = Path.Combine(args[0], "settings.json");
+if (File.Exists(filePath) != true)
 {
-    internal class Program
-    {
-        static void Main(string[] args)
-        {
-#if DEBUG
-            args = new string[] { @"D:/data/Plands/Plands.Core/data/data.sb" };
-#endif
-
-            if (args.Length == 0)
-            {
-                var versionString = Assembly.GetEntryAssembly()?
-                                        .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-                                        .InformationalVersion
-                                        .ToString();
-
-                Console.WriteLine($"MDD Booster v{versionString}");
-                Console.WriteLine("-------------");
-                Console.WriteLine("\nUsage:");
-                Console.WriteLine("mdd <file-path>");
-                return;
-            }
-
-            var filePath = args.ElementAt(0);
-
-#if DEBUG
-            Run(filePath);
-#else
-            try
-            {
-                Run(filePath);
-            }
-            catch (Exception e)
-            {
-                ShowBot(e.Message, false);
-            }
-#endif
-        }
-
-        private static void Run(string filePath)
-        {
-            ShowBot($"{filePath} working...", true);
-
-            var runner = new Runner(filePath);
-            runner.Run();
-
-            ShowBot($"done.", false);
-        }
-
-        static void ShowBot(string message, bool withIamge)
-        {
-            if (withIamge)
-            {
-                string bot = $"\n        {message}";
-                bot += @"
-    __________________
-                      \
-                       \
-                          ....
-                          ....'
-                           ....
-                        ..........
-                    .............'..'..
-                 ................'..'.....
-               .......'..........'..'..'....
-              ........'..........'..'..'.....
-             .'....'..'..........'..'.......'.
-             .'..................'...   ......
-             .  ......'.........         .....
-             .    _            __        ......
-            ..    #            ##        ......
-           ....       .                 .......
-           ......  .......          ............
-            ................  ......................
-            ........................'................
-           ......................'..'......    .......
-        .........................'..'.....       .......
-     ........    ..'.............'..'....      ..........
-   ..'..'...      ...............'.......      ..........
-  ...'......     ...... ..........  ......         .......
- ...........   .......              ........        ......
-.......        '...'.'.              '.'.'.'         ....
-.......       .....'..               ..'.....
-   ..       ..........               ..'........
-          ............               ..............
-         .............               '..............
-        ...........'..              .'.'............
-       ...............              .'.'.............
-      .............'..               ..'..'...........
-      ...............                 .'..............
-       .........                        ..............
-        .....
-";
-                Console.WriteLine(bot);
-            }
-            else
-            {
-                string bot = $"";
-                bot += $@"
-                        /
-                       /
-    __________________/
-        {message}";
-                Console.WriteLine(bot);
-            }
-        }
-
-    }
+    Console.WriteLine($"cannot find file - {filePath}");
+    return;
 }
+
+using IHost host = Host.CreateDefaultBuilder(args)
+    .ConfigureServices(services =>
+    {
+        var options = new JsonSerializerOptions()
+        {
+            AllowTrailingCommas = true
+        };
+        var settings = JsonSerializer.Deserialize<Settings>(File.OpenRead(filePath), options);
+        if (settings == null) throw new Exception("cannot read settings");
+        settings.BasePath = Path.GetDirectoryName(filePath);
+
+        services.AddSingleton(settings);
+        services.AddSingleton<App>();
+        services.AddSingleton<Runner>();
+    })
+    .ConfigureLogging(config =>
+    {
+        config.ClearProviders();
+        config.AddSimpleConsole(p => p.SingleLine = true);
+    })
+    .Build();
+
+var app = host.Services.GetRequiredService<App>();
+await app.RunAsync();

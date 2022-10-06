@@ -16,8 +16,12 @@ namespace MDDBooster
         [JsonPropertyName("model-ns")]
         public string? ModelNS { get; set; }
 
+        [JsonPropertyName("tables-path")]
+        public string TablesPath { get; set; } = "tables.mdd";
+
         internal string? GetDatabaseProjectPath() => ResolveDir(DatabaseProjectPath);
         internal string? GetModelProjectPath() => ResolveDir(ModelProjectPath);
+        internal string? GetTablesFilePath() => ResolveDir(TablesPath);
 
         private string? ResolveDir(string? parameterPath)
         {

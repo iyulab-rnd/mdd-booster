@@ -1,4 +1,5 @@
 ﻿using MDDBooster.Builders;
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -6,29 +7,21 @@ namespace MDDBooster
 {
     internal class Runner
     {
-        private readonly string fileText;
+        private readonly ILogger<Runner> logger;
         private readonly Settings settings;
 
-        internal Runner(string filePath)
+        public Runner(ILogger<Runner> logger, Settings settings)
         {
-            var fileInfo = new FileInfo(filePath);
-            if (fileInfo.Exists != true) throw new Exception($"cannot find file - {filePath}");
-
-            var basePath = fileInfo.DirectoryName!;
-            var settingsPath = Path.Combine(basePath, "settings.json");
-            if (File.Exists(settingsPath) != true) throw new Exception($"cannot find file - settings.json");
-
-            var settings = JsonSerializer.Deserialize<Settings>(File.ReadAllText(settingsPath));
-            if (settings == null) throw new Exception($"wrong file - settings.json");
+            this.logger = logger;
             this.settings = settings;
-
-            settings.BasePath = basePath;
-
-            this.fileText = File.ReadAllText(filePath);
         }
 
-        internal void Run()
+        internal async Task RunAsync()
         {
+            var filePath = settings.GetTablesFilePath();
+            if (System.IO.File.Exists(filePath) != true) throw new Exception($"cannot find tables file");
+
+            var fileText = await File.ReadAllTextAsync(filePath);
             var models = Parse(fileText);
 
             BuildSqlFiles(models);
@@ -88,6 +81,8 @@ namespace MDDBooster
 
             foreach (var m in models.OfType<TableMeta>())
             {
+                logger.LogInformation($"Build SQL: {m.Name}");
+
                 var builder = new SqlBuilder(m);
                 builder.Build(basePath);
             }
@@ -107,12 +102,16 @@ namespace MDDBooster
 
             foreach (var m in models.OfType<InterfaceMeta>())
             {
+                logger.LogInformation($"Build Interface Class: {m.Name}");
+
                 var builder = new InterfaceBuilder(m);
                 builder.Build(ns, basePath);
             }
 
             foreach (var m in models.OfType<TableMeta>())
             {
+                logger.LogInformation($"Build Entity Class: {m.Name}");
+
                 var builder = new EntityBuilder(m);
                 builder.Build(ns, basePath);
             }
