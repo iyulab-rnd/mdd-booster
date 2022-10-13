@@ -13,23 +13,54 @@ namespace MDDBooster.Builders
         {
         }
 
-        protected static string OutputPropertyLine(ColumnMeta c)
+        protected static string[] OutputPropertyLines(ColumnMeta c)
         {
+#if DEBUG
+            if (c.Name == "PlanType")
+            {
+            }
+#endif
             var attributesText = c.Attributes == null ? null : string.Join($"{Environment.NewLine}\t\t", c.Attributes);
-            if (attributesText != null) 
+            if (string.IsNullOrEmpty(attributesText) != true) 
             {
                 attributesText += $"{Environment.NewLine}\t\t";
             }
 
             var typeAlias = c.GetSystemTypeAlias();
             var nullable = c.NN == null || (bool)c.NN == false ? "?" : string.Empty;
-            return @$"{attributesText}public {typeAlias}{nullable} {c.Name} {{ get; set; }}";
-            //[ForeignKey(TableName = ""MaterialItem"", ColumnName = ""_id"", Options = ForeignKeyOptions.Delete)]
-            //[Binding]
-            //[Display(Name = ""사용자재품목ID"", Order = 1, AutoGenerateField = false)]
-            //[Required(ErrorMessageResourceName = ""Required"", ErrorMessageResourceType = typeof(Iyu.Properties.ValidationResources))]
-            //[DataField]
-            //public int UseMaterialItemId {{ get; set; } }
+
+            var lines = new List<string>()
+            {
+                @$"{attributesText}public {typeAlias}{nullable} {c.Name} {{ get; set; }}"
+            };
+
+            if (c.IsEnumType())
+            {
+                var typeName = StringHelper.ToPlural(c.Name);
+                var name = c.Name + "Enum";
+                var vName = name.ToCamel();
+                string getter, setter;
+                if (c.IsEnumKey())
+                {
+                    getter = $"Enum.TryParse(typeof({typeName}), {c.Name}, out var {vName}) ? ({typeName}){vName}! : default;";
+                    setter = $"{c.Name} = value.ToString();";
+                }
+                else
+                {
+                    getter = $"Enum.IsDefined(typeof({typeName}), {c.Name}) ? ({typeName}){c.Name} : default;";
+                    setter = $"{c.Name} = (int)value;";
+                }
+
+                var line = $@"[Ignore]
+		[JsonIgnore]
+		public {typeName} {name}
+		{{
+			get => {getter}
+			set => {setter}
+        }}";
+                lines.Add(line);
+            }
+            return lines.ToArray();
         }
 
     }
@@ -42,7 +73,7 @@ namespace MDDBooster.Builders
 
         public void Build(string ns, string basePath)
         {
-            var propertyLines = Columns.Select(p => OutputPropertyLine(p));
+            var propertyLines = Columns.SelectMany(p => OutputPropertyLines(p));
             var propertyLinesText = string.Join($"{Environment.NewLine}{Environment.NewLine}\t\t", propertyLines);
 
             var className = Name;
@@ -54,14 +85,15 @@ namespace MDDBooster.Builders
                 ? string.Empty
                 : $" : {baseText}";
 
-            var code = $@"using System.ComponentModel.DataAnnotations.Schema;
+            var code = $@"using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace {ns}.Data.Entity
 {{
     public partial interface {className}{baseLine}
     {{
-		
-            {propertyLinesText}
+        {propertyLinesText}
     }}
 }}";
             code = code.Replace("\t", "    ");
@@ -78,7 +110,7 @@ namespace {ns}.Data.Entity
 
         public void Build(string ns, string basePath)
         {
-            var propertyLines = FullColumns.Select(p => OutputPropertyLine(p));
+            var propertyLines = FullColumns.SelectMany(p => OutputPropertyLines(p));
             var propertyLinesText = string.Join($"{Environment.NewLine}{Environment.NewLine}\t\t", propertyLines);
 
             var summary = Name;
@@ -93,10 +125,14 @@ namespace {ns}.Data.Entity
                 ? string.Empty
                 : $" : {baseText}";
 
-            var code = $@"using System.ComponentModel.DataAnnotations.Schema;
+            var enumSyntax = GetEnumSyntax();
+
+            var code = $@"using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace {ns}.Data.Entity
-{{
+{{{enumSyntax}
     /// <summary>
     /// {summary}
     /// </summary>
@@ -108,6 +144,31 @@ namespace {ns}.Data.Entity
 }}";
             var path = Path.Combine(basePath, $"{className}.cs");
             File.WriteAllText(path, code);
+        }
+
+        private string? GetEnumSyntax()
+        {
+            var list = new List<string>();
+            foreach(var c in FullColumns.Where(p => p.IsEnumType()))
+            {
+                var options = c.GetEnumOptions();
+                if (options != null)
+                {
+                    var name = c.Name.ToPlural();
+                    var optionsLinesText = string.Join($",{Environment.NewLine}\t\t", options);
+                    var line = $@"public enum {name}
+	{{
+		{optionsLinesText}
+	}}";
+                    list.Add(line);
+                }
+            }
+
+            if (list.Any())
+                return $"{Environment.NewLine}\t{string.Join(Environment.NewLine + Environment.NewLine, list)}{Environment.NewLine}";
+
+            else
+                return null;
         }
     }
 

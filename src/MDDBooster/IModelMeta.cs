@@ -45,6 +45,12 @@ namespace MDDBooster
 
         protected virtual ColumnMeta[] BuildColumns()
         {
+#if DEBUG
+            if (Name == "Plan")
+            {
+
+            }
+#endif
             var list = new List<ColumnMeta>();
 
             foreach (Match m in Regex.Matches(Body, @"\-\s*(\w+).*?\:\s*(\w+(\?|)).*").Cast<Match>())
@@ -201,12 +207,21 @@ namespace MDDBooster
         public string? Size { get; set; }
         public string? Default { get; set; }
         public string[]? Attributes { get; set; }
+        public string LineText { get; set; }
 
         public Type GetSystemType()
         {
             if (typeAliasToTypeMap.TryGetValue(DataType.ToLower(), out var t))
+            {
+                if (DataType.ToLower() == "enum")
+                {
+                    if (IsEnumKey())
+                        return typeof(string);
+                    else
+                        return typeof(int);
+                }
                 return t;
-
+            }
             else if (sqlTypeToTypeMap.TryGetValue(DataType.ToUpper(), out var t2))
                 return t2;
 
@@ -217,8 +232,17 @@ namespace MDDBooster
         public string GetSqlType()
         {
             if (typeNameToSqlTypeMap.TryGetValue(DataType.ToLower(), out var t1))
-                return t1;
+            {
+                if (DataType.ToLower() == "enum")
+                {
+                    if (IsEnumKey())
+                        return "NVARCHAR";
+                    else
+                        return "TINYINT";
+                }
 
+                return t1;
+            }
             else
             {
                 var systemType = GetSystemType();
@@ -255,8 +279,14 @@ namespace MDDBooster
             }
         }
 
-        public ColumnMeta(string name, string dataType, string sbText)
+        public ColumnMeta(string name, string dataType, string lineText)
         {
+#if DEBUG
+            if (name == "PlanType")
+            {
+
+            }
+#endif
             Name = name;
 
             if (dataType.EndsWith("?"))
@@ -264,7 +294,7 @@ namespace MDDBooster
                 this.NN = false;
                 DataType = dataType[..(dataType.Length - 1)];
             }
-            else if (sbText.Contains(name + "?"))
+            else if (lineText.Contains(name + "?"))
             {
                 this.NN = false;
                 DataType = dataType;
@@ -275,7 +305,7 @@ namespace MDDBooster
                 DataType = dataType;
             }
 
-            if (sbText.GetBetween($"{DataType}(", ")") is string s)
+            if (lineText.GetBetween($"{DataType}(", ")") is string s)
             {
                 if (int.TryParse(s, out var size))
                     Size = size.ToString();
@@ -284,24 +314,37 @@ namespace MDDBooster
                     Size = "max";
             }
 
-            ParseOptions(sbText);
-            ParseAttribtes(sbText);
+            ParseOptions(lineText);
+            ParseAttribtes(lineText);
+
+            this.LineText = lineText;
         }
 
-        private void ParseAttribtes(string sbText)
+        private void ParseAttribtes(string lineText)
         {
-            var m = Regex.Matches(sbText, @"\[[\(\)\w\s\=\""\.]+\]");
+            var attributes = new List<string>();
+
+            if (this.IsNotNull())
+            {
+                attributes.Add("[Required]");
+            }
+
+            var m = Regex.Matches(lineText, @"\[[\(\)\w\s\=\""\.]+\]");
             if (m.Any())
             {
-                this.Attributes = m.Select(p => p.Value).ToArray();
+                attributes.AddRange(m.Select(p => p.Value));
             }
+
+            this.Attributes = attributes.ToArray();
         }
 
-        private void ParseOptions(string sbText)
+        private bool IsNotNull() => this.NN == true;
+
+        private void ParseOptions(string lineText)
         {
             //if (Name == "NormalizedEmail") Console.WriteLine(1);
     
-            var text = sbText.RightFromFirst(":");
+            var text = lineText.RightFromFirst(":");
             text = text.Left("//");
             var optionsText = text.GetBetween("(", ")", true);
 
@@ -323,6 +366,25 @@ namespace MDDBooster
                 else if (option.Equals("UI", StringComparison.OrdinalIgnoreCase) || option.Equals("index", StringComparison.OrdinalIgnoreCase))
                     this.UI = true;
             }
+        }
+
+        internal bool IsEnumType() => DataType.Equals("enum", StringComparison.OrdinalIgnoreCase);
+        internal bool IsEnumKey() => LineText.Contains("enum(key:", StringComparison.OrdinalIgnoreCase);
+        internal bool IsEnumValue() => !IsEnumKey();
+
+        internal string[]? GetEnumOptions()
+        {
+            var optionsText = LineText.RegexReturn("enum\\((.*?)\\)", 1);
+            if (optionsText != null)
+            {
+                var options = optionsText.Split("|").Select(p =>
+                {
+                    return p.Contains(':') ? p.Right(":").Trim() : p.Trim();
+                });
+                return options.ToArray();
+            }
+            else
+                return null;
         }
     }
 

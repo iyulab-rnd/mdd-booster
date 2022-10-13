@@ -1,4 +1,6 @@
-﻿using System.Text.RegularExpressions;
+﻿using Pluralize.NET;
+using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace MDDBooster
 {
@@ -57,5 +59,44 @@ namespace MDDBooster
             var s = end > 0 ? input[start..end] : input[start..];
             return s;
         }
+
+        public static string ToPascal(this string value)
+        {
+            TextInfo info = CultureInfo.CurrentCulture.TextInfo;
+            return info.ToTitleCase(value).Replace(" ", string.Empty);
+        }
+
+        public static string ToCamel(this string value)
+        {
+            return char.ToLowerInvariant(value[0]) + value[1..];
+        }
+
+        /// <summary>
+        /// 복수 이름을 가져옵니다.
+        /// </summary>
+        public static string ToPlural(this string name)
+        {
+            var pluralizer = new Pluralizer();
+            return pluralizer.Pluralize(name);
+        }
+
+        /// <summary>
+        /// 단수 이름을 가져옵니다.
+        /// </summary>
+        public static string ToSingular(this string name)
+        {
+            var pluralizer = new Pluralizer();
+            return pluralizer.Singularize(name);
+        }
+
+        /// <summary>
+        /// 복수 이름이면 True
+        /// </summary>
+        public static bool IsPlural(this string name) => (new Pluralizer()).IsPlural(name);
+        /// <summary>
+        /// 단수 이름이면 True
+        /// </summary>
+        public static bool IsSingular(this string name) => (new Pluralizer()).IsSingular(name);
+
     }
 }

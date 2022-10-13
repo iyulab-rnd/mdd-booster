@@ -14,7 +14,7 @@ namespace MDDBooster.Builders
         public void Build(string basePath)
         {
 #if DEBUG
-            if (this.meta.Name == "UserLogins")
+            if (this.meta.Name == "Plan")
             {
                 
             }
