@@ -12,13 +12,13 @@ namespace MDDBooster
 
     public static class ModelMetaExtensions
     {
-        public static string[] GetInterfaceNames(this IModelMeta meta)
+        public static string[] GetInherits(this IModelMeta meta)
         {
             return meta.Headline
                 .Right(":")
                 .Split(",")
                 .Select(p => p.Trim())
-                .Where(n => Utils.IsInterfaceName(n))
+                .Where(n => n[0] >= 'A' && n[0] <= 'Z')
                 .ToArray();
         }
     }
@@ -30,6 +30,12 @@ namespace MDDBooster
         public string Body { get; }
 
         public InterfaceMeta[]? Interfaces { get; internal set; }
+        public AbstractMeta? Abstract { get; internal set; }
+        public string? AbstractName 
+        { 
+            get => abstractName ?? Abstract?.Name; 
+            set => abstractName = value; 
+        }
 
         protected ModelMetaBase(string name, string headline, string body)
         {
@@ -40,6 +46,8 @@ namespace MDDBooster
 
         private ColumnMeta[]? _Columns;
         private ColumnMeta[]? _FullColumns;
+        private string? abstractName;
+
         public ColumnMeta[] Columns => _Columns ??= BuildColumns();
         public ColumnMeta[] FullColumns => _FullColumns ??= BuildFullColumns();
 
@@ -78,13 +86,19 @@ namespace MDDBooster
                 list.Add(c);
             }
 
-            if (Interfaces == null || Interfaces.Any() != true)
-                return list.ToArray();
-            else
-            {
-                var baseColumns = Interfaces.SelectMany(p => p.FullColumns);
-                return list.Concat(baseColumns).ToArray();
-            }
+            var allNames = list.Select(p => p.Name);
+            var interfaceColumns = Interfaces?.SelectMany(p => p.FullColumns);
+            var abstractColumns = Abstract?.FullColumns;
+
+            var items = list.AsEnumerable();
+
+            if (interfaceColumns != null)
+                items = items.Concat(interfaceColumns.Where(p => allNames.Contains(p.Name) != true));
+
+            if (abstractColumns != null)
+                items = items.Concat(abstractColumns.Where(p => allNames.Contains(p.Name) != true));
+
+            return items.ToArray();
         }
 
         internal string[][] GetUniqueMultiples()
@@ -95,12 +109,19 @@ namespace MDDBooster
             var values = m_values.Select(p => p.Groups[1].Value);
             var list = new List<string[]>();
 
-            foreach(var value in values)
+            foreach (var value in values)
             {
                 var fields = value.Split(",").Select(p => p.Trim());
                 list.Add(fields.ToArray());
             }
             return list.ToArray();
+        }
+
+        internal bool IsDefault() => this.Headline.Contains("@default");
+
+        internal ColumnMeta GetPKColumn()
+        {
+            return this.FullColumns.First(p => p.PK);
         }
     }
 
@@ -109,10 +130,12 @@ namespace MDDBooster
         public InterfaceMeta(string name, string headline, string body) : base(name, headline, body)
         {
         }
+    }
 
-        internal bool IsDefault()
+    public class AbstractMeta : ModelMetaBase
+    {
+        public AbstractMeta(string name, string headline, string body) : base(name, headline, body)
         {
-            return this.Headline.Contains("@default");
         }
     }
 
@@ -194,7 +217,7 @@ namespace MDDBooster
         private static readonly Dictionary<string, string> typeNameToSqlTypeMap = new()
         {
             { "money", "MONEY" },
-            { "enum", "TINYINT" }
+            { "enum", "INTEGER" }
         };
 
         public string Name { get; }
@@ -238,7 +261,7 @@ namespace MDDBooster
                     if (IsEnumKey())
                         return "NVARCHAR";
                     else
-                        return "TINYINT";
+                        return "INTEGER";
                 }
 
                 return t1;
@@ -282,7 +305,7 @@ namespace MDDBooster
         public ColumnMeta(string name, string dataType, string lineText)
         {
 #if DEBUG
-            if (name == "PlanType")
+            if (name == "LastAt")
             {
 
             }
@@ -317,6 +340,9 @@ namespace MDDBooster
             ParseOptions(lineText);
             ParseAttribtes(lineText);
 
+            if (this.FK != true && this.Name.StartsWith("_") != true && (this.Name.EndsWith("_id") || this.Name.EndsWith("_key")))
+                this.FK = true;
+
             this.LineText = lineText;
         }
 
@@ -324,12 +350,17 @@ namespace MDDBooster
         {
             var attributes = new List<string>();
 
+            if (this.PK)
+            {
+                attributes.Add("[Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]");
+            }
+
             if (this.IsNotNull())
             {
                 attributes.Add("[Required]");
             }
 
-            var m = Regex.Matches(lineText, @"\[[\(\)\w\s\=\""\.]+\]");
+            var m = Regex.Matches(lineText, @"\[.*?\]");
             if (m.Any())
             {
                 attributes.AddRange(m.Select(p => p.Value));
@@ -357,7 +388,7 @@ namespace MDDBooster
                 if (option.Equals("PK", StringComparison.OrdinalIgnoreCase))
                     this.PK = true;
 
-                else if (option.Equals("FK", StringComparison.OrdinalIgnoreCase))
+                else if (option.StartsWith("FK", StringComparison.OrdinalIgnoreCase))
                     this.FK = true;
 
                 else if (option.Equals("UQ", StringComparison.OrdinalIgnoreCase) || option.Equals("unique", StringComparison.OrdinalIgnoreCase))
@@ -386,6 +417,18 @@ namespace MDDBooster
             else
                 return null;
         }
+
+        internal string GetForeignKeyEntityName()
+        {
+            if (LineText.Contains("FK:"))
+                return LineText.GetBetween("FK:", ")");
+
+            else if (Name.Contains("_"))
+                return Name.Left("_");
+
+            else
+                throw new NotImplementedException();
+        }
     }
 
     public static class ModelMetaFactory
@@ -405,6 +448,9 @@ namespace MDDBooster
             IModelMeta model;
             if (Utils.IsInterfaceName(name))
                 model = new InterfaceMeta(name, headline, body);
+
+            else if (Utils.IsAbstract(headline))
+                model = new AbstractMeta(name, headline, body);
 
             else
                 model = new TableMeta(name, headline, body);

@@ -4,6 +4,9 @@ using System.Security.Cryptography;
 using System.Xml.Linq;
 using System.Linq;
 using static System.Net.Mime.MediaTypeNames;
+using Microsoft.Extensions.Logging;
+using System.Diagnostics.Metrics;
+using System.Runtime.CompilerServices;
 
 namespace MDDBooster.Builders
 {
@@ -13,10 +16,12 @@ namespace MDDBooster.Builders
         {
         }
 
+        protected Settings.Settings Settings => Resolver.Settings;
+
         protected static string[] OutputPropertyLines(ColumnMeta c)
         {
 #if DEBUG
-            if (c.Name == "PlanType")
+            if (c.Name == "OwnerKey")
             {
             }
 #endif
@@ -51,18 +56,45 @@ namespace MDDBooster.Builders
                     setter = $"{c.Name} = (int)value;";
                 }
 
-                var line = $@"[Ignore]
-		[JsonIgnore]
-		public {typeName} {name}
+                var line = $@"[NotMapped]
+        [Ignore]
+		public virtual {typeName} {name}
 		{{
 			get => {getter}
 			set => {setter}
         }}";
                 lines.Add(line);
             }
+
+            if (c.FK)
+            {
+                var pName = c.Name.EndsWith("_id") ? c.Name.Left("_id")
+                    : c.Name.EndsWith("_key") ? c.Name.Left("_key")
+                    : c.Name.EndsWith("Id") ? c.Name.Left("Id")
+                    : c.Name.EndsWith("Key") ? c.Name.Left("Key")
+                    : throw new Exception("Rule위배: FK는 _id, _key, Id, Key로 끝나야 합니다.");
+
+                var typeName = c.GetForeignKeyEntityName();
+
+                var line = $@"[ForeignKey(nameof({c.Name}))]
+		public virtual {typeName}{nullable} {pName} {{ get; set; }}";
+                lines.Add(line);
+            }
             return lines.ToArray();
         }
 
+        protected string BuildUsings()
+        {
+            var defaultUsing = @"using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;";
+
+            if (Settings.ModelProject.Usings == null) return defaultUsing;
+
+            var usings = Settings.ModelProject.Usings.Select(p => $"using {p};");
+            var text = Environment.NewLine + string.Join(Environment.NewLine, usings);
+            return defaultUsing + text;
+        }
     }
 
     internal class InterfaceBuilder : ModelBuilder
@@ -85,9 +117,7 @@ namespace MDDBooster.Builders
                 ? string.Empty
                 : $" : {baseText}";
 
-            var code = $@"using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
+            var code = $@"{BuildUsings()}
 
 namespace {ns}.Data.Entity
 {{
@@ -110,26 +140,56 @@ namespace {ns}.Data.Entity
 
         public void Build(string ns, string basePath)
         {
-            var propertyLines = FullColumns.SelectMany(p => OutputPropertyLines(p));
+            var columns = meta.FullColumns;
+
+            if (meta.Abstract != null)
+            {
+                columns = columns.Where(p =>
+                {
+                    return meta.Abstract.FullColumns.Any(n => n.Name == p.Name) != true;
+                }).ToArray();
+            }
+
+            var propertyLines = columns.SelectMany(p => OutputPropertyLines(p));
             var propertyLinesText = string.Join($"{Environment.NewLine}{Environment.NewLine}\t\t", propertyLines);
 
             var summary = Name;
             var className = Name;
             var tableName = Name;
 
-            var baseText = meta.Interfaces == null || meta.Interfaces.Length == 0
-    ? "IEntity"
-    : string.Join(", ", meta.Interfaces.Select(p => p.Name));
+            var baseEntities = meta.Abstract == null
+                ? Array.Empty<string>()
+                : new string[] { meta.Abstract.Name };
+
+            if (meta.Interfaces != null)
+            {
+                baseEntities = baseEntities.Concat(meta.Interfaces.Select(p => p.Name)).ToArray();
+            }
+
+            var baseText = string.Join(", ", baseEntities);
 
             var baseLine = string.IsNullOrWhiteSpace(baseText)
-                ? string.Empty
+                ? $" : IEntity"
                 : $" : {baseText}";
 
             var enumSyntax = GetEnumSyntax();
 
-            var code = $@"using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
+            string code;
+            if (meta is AbstractMeta abstractMeta)
+            {
+                code = $@"{BuildUsings()}
+
+namespace {ns}.Data.Entity
+{{{enumSyntax}
+    public abstract partial class {className}{baseLine}
+    {{
+		{propertyLinesText}
+    }}
+}}";
+            }
+            else if (meta is TableMeta tableMeta)
+            {
+                code = $@"{BuildUsings()}
 
 namespace {ns}.Data.Entity
 {{{enumSyntax}
@@ -142,6 +202,10 @@ namespace {ns}.Data.Entity
 		{propertyLinesText}
     }}
 }}";
+            }
+            else
+                throw new NotImplementedException();
+
             var path = Path.Combine(basePath, $"{className}.cs");
             File.WriteAllText(path, code);
         }

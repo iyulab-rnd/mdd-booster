@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using System.Net;
 using System.Text;
@@ -7,8 +8,11 @@ namespace MDDBooster.Builders
 {
     public class SqlBuilder : BuilderBase
     {
+        private readonly TableMeta table;
+
         public SqlBuilder(TableMeta m) : base(m)
         {
+            this.table = m;
         }
 
         public void Build(string basePath)
@@ -94,13 +98,22 @@ GO{nullableUniqueLinesText}";
 
         private object OutputFKLine(ColumnMeta c)
         {
-            if (c.Name.Contains('_') != true) throw new NotImplementedException($"OutputFKLine, {c.Name}");
+            string fkTable, cName;
+            if (c.Name.Contains('_'))
+            {
+                fkTable = c.Name.Left("_");
+                cName = c.Name.Right("_", true);
+            }
+            else
+            {
+                var m = Functions.FindTable(c.GetForeignKeyEntityName());
+                fkTable = m.Name;
+                cName =  m.GetPKColumn().Name;
+            }
 
-            var fkTable = c.Name.Left("_");
-            var cName = c.Name.Right("_", true);
+            var OnSyntax = c.NN == true ? $"{Environment.NewLine}ON DELETE CASCADE" : null;
             var code = $@"ALTER TABLE [dbo].[{Name}] ADD CONSTRAINT [FK_{Name}_{c.Name}] FOREIGN KEY ([{c.Name}])
-REFERENCES [dbo].[{fkTable}]([{cName}])
-ON DELETE CASCADE
+REFERENCES [dbo].[{fkTable}]([{cName}]){OnSyntax}
 GO";
             return code;
         }

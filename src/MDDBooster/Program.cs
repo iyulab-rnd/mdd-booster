@@ -1,4 +1,6 @@
 ﻿using MDDBooster;
+using MDDBooster.Handlers;
+using MDDBooster.Settings;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -24,21 +26,27 @@ using IHost host = Host.CreateDefaultBuilder(args)
     {
         var options = new JsonSerializerOptions()
         {
-            AllowTrailingCommas = true
+            AllowTrailingCommas = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         };
         var settings = JsonSerializer.Deserialize<Settings>(File.OpenRead(filePath), options);
         if (settings == null) throw new Exception("cannot read settings");
-        settings.BasePath = Path.GetDirectoryName(filePath);
+        settings.BasePath ??= Path.GetDirectoryName(filePath);
+
+        Resolver.Settings = settings;
 
         services.AddSingleton(settings);
         services.AddSingleton<App>();
         services.AddSingleton<Runner>();
+
+        services.AddSingleton<ModelProjectHandler>();
+        services.AddSingleton<DatabaseProjectHandler>();
     })
-    .ConfigureLogging(config =>
-    {
-        config.ClearProviders();
-        config.AddSimpleConsole(p => p.SingleLine = true);
-    })
+    //.ConfigureLogging(config =>
+    //{
+    //    config.ClearProviders();
+    //    config.AddSimpleConsole(p => p.SingleLine = true);
+    //})
     .Build();
 
 var app = host.Services.GetRequiredService<App>();

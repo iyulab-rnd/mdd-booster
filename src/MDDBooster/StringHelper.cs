@@ -45,7 +45,7 @@ namespace MDDBooster
                 return input[(n + search.Length)..];
         }
 
-        public static string GetBetween(this string input, string begin, string to, bool last = false)
+        public static string GetBetween(this string input, string begin, string end, bool last = false)
         {
             var first = last
                 ? input.LastIndexOf(begin)
@@ -53,11 +53,11 @@ namespace MDDBooster
 
             if (first < 0) return String.Empty;
 
-            var start = first >= 0 ? first + begin.Length : 0;
-            var end = input.IndexOf(to, start);
+            var s = first >= 0 ? first + begin.Length : 0;
+            var e = input.IndexOf(end, s);
 
-            var s = end > 0 ? input[start..end] : input[start..];
-            return s;
+            var r = e > 0 ? input[s..e] : input[s..];
+            return r;
         }
 
         public static string ToPascal(this string value)

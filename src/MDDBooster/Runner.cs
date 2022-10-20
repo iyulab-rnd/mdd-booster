@@ -1,4 +1,5 @@
 ﻿using MDDBooster.Builders;
+using MDDBooster.Handlers;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -8,12 +9,18 @@ namespace MDDBooster
     internal class Runner
     {
         private readonly ILogger<Runner> logger;
-        private readonly Settings settings;
+        private readonly Settings.Settings settings;
+        private readonly DatabaseProjectHandler databaseProjectHandler;
+        private readonly ModelProjectHandler modelProjectHandler;
 
-        public Runner(ILogger<Runner> logger, Settings settings)
+        public Runner(ILogger<Runner> logger, Settings.Settings settings,
+            DatabaseProjectHandler databaseProjectHandler,
+            ModelProjectHandler modelProjectHandler)
         {
             this.logger = logger;
             this.settings = settings;
+            this.databaseProjectHandler = databaseProjectHandler;
+            this.modelProjectHandler = modelProjectHandler;
         }
 
         internal async Task RunAsync()
@@ -24,8 +31,10 @@ namespace MDDBooster
             var fileText = await File.ReadAllTextAsync(filePath);
             var models = Parse(fileText);
 
-            BuildSqlFiles(models);
-            BuildModelFiles(models);
+            Resolver.Models = models;
+
+            await databaseProjectHandler.RunAsync(models);
+            await modelProjectHandler.RunAsync(models);
         }
 
         private static IModelMeta[] Parse(string text)
@@ -34,7 +43,7 @@ namespace MDDBooster
 
             var models = new List<IModelMeta>();
 
-            foreach(var m in maches)
+            foreach (var m in maches)
             {
                 var content = m.ToString();
                 if (string.IsNullOrEmpty(content)) continue;
@@ -47,74 +56,51 @@ namespace MDDBooster
 
             models.OfType<ModelMetaBase>().ToList().ForEach(p =>
             {
-                var interfaceNames = p.GetInterfaceNames();
-                var list = new List<InterfaceMeta>();
-                foreach(var interfaceName in interfaceNames)
+                var inherits = p.GetInherits();
+                
+                var interfaces = new List<InterfaceMeta>();
+                AbstractMeta? abstractMeta = null;
+
+                foreach (var inheritName in inherits)
                 {
-                    var m = models.OfType<InterfaceMeta>().First(p => p.Name == interfaceName);
-                    list.Add(m);
+                    var m = models.FirstOrDefault(p => p.Name == inheritName);
+                    if (m == null)
+                    {
+                        p.AbstractName = inheritName;
+                        continue;
+                    }
+
+                    if (m is InterfaceMeta interfaceMeta)
+                        interfaces.Add(interfaceMeta);
+
+                    else if (m is AbstractMeta mAbs)
+                    {
+                        if (abstractMeta != null) throw new Exception("두개이상의 추상클래스는 부여 할 수 없습니다.");
+
+                        abstractMeta = mAbs;
+                    }
+                    else
+                        throw new NotImplementedException();
                 }
-                p.Interfaces = list.ToArray();
+
+                p.Interfaces = interfaces.ToArray();
+                p.Abstract = abstractMeta;
             });
 
-            var defaultInterface = models.OfType<InterfaceMeta>().FirstOrDefault(p => p.IsDefault());
-            if (defaultInterface != null)
+            var defaults = models.OfType<ModelMetaBase>().FirstOrDefault(p => p.IsDefault());
+            if (defaults != null)
             {
-                foreach (var p in models.OfType<TableMeta>().Where(p => p.Interfaces == null || p.Interfaces.Any() != true))
+                foreach (var p in models.OfType<TableMeta>())
                 {
-                    p.Interfaces = new[] { defaultInterface };
+                    if (defaults is InterfaceMeta m1)
+                        p.Interfaces = new[] { m1 };
+
+                    else if (defaults is AbstractMeta m2)
+                        p.Abstract = m2;
                 }
             }
 
             return models.ToArray();
-        }
-
-
-        private void BuildSqlFiles(IModelMeta[] models)
-        {
-            var projPath = settings.GetDatabaseProjectPath();
-            if (projPath == null) return;
-
-            var basePath = Path.Combine(projPath, "dbo", "Tables_");
-            if (Directory.Exists(basePath)) Directory.Delete(basePath, true);
-            Directory.CreateDirectory(basePath);
-
-            foreach (var m in models.OfType<TableMeta>())
-            {
-                logger.LogInformation($"Build SQL: {m.Name}");
-
-                var builder = new SqlBuilder(m);
-                builder.Build(basePath);
-            }
-        }
-
-        private void BuildModelFiles(IModelMeta[] models)
-        {
-            var projPath = settings.GetModelProjectPath();
-            if (projPath == null) return;
-
-            var ns = settings.ModelNS;
-            if (ns == null) throw new Exception("required settings, model-ns");
-
-            var basePath = Path.Combine(projPath, "Data", "Entity_");
-            if(Directory.Exists(basePath)) Directory.Delete(basePath, true);
-            Directory.CreateDirectory(basePath);
-
-            foreach (var m in models.OfType<InterfaceMeta>())
-            {
-                logger.LogInformation($"Build Interface Class: {m.Name}");
-
-                var builder = new InterfaceBuilder(m);
-                builder.Build(ns, basePath);
-            }
-
-            foreach (var m in models.OfType<TableMeta>())
-            {
-                logger.LogInformation($"Build Entity Class: {m.Name}");
-
-                var builder = new EntityBuilder(m);
-                builder.Build(ns, basePath);
-            }
         }
     }
 }
