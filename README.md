@@ -14,4 +14,15 @@ MDD 를 지원하는 코드 생성기 입니다.
 **실행**
 
 > `mdd <directory-path>`
-<br> `mdd` // 현재경로
+<br> // `directory-path` 매개변수로 실행
+
+> `mdd` // 현재경로
+
+**Settings**
+
+`settings.json` 파일이 필요합니다.
+
+```
+{
+}
+```
