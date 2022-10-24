@@ -27,7 +27,7 @@ namespace MDDBooster
             }
             catch (Exception e)
             {
-                logger.LogError(e.Message + Environment.NewLine + e.StackTrace);
+                logger.LogError($"{e.Message}{Environment.NewLine}{e.StackTrace}");
                 await Task.Delay(TimeSpan.FromSeconds(1));
             }
         }

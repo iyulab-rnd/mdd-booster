@@ -1,12 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.ComponentModel.DataAnnotations;
-using System.Security.Cryptography;
+﻿using Microsoft.Extensions.Configuration;
 using System.Xml.Linq;
-using System.Linq;
-using static System.Net.Mime.MediaTypeNames;
-using Microsoft.Extensions.Logging;
-using System.Diagnostics.Metrics;
-using System.Runtime.CompilerServices;
 
 namespace MDDBooster.Builders
 {
@@ -66,8 +59,16 @@ namespace MDDBooster.Builders
                 lines.Add(line);
             }
 
-            if (c.FK)
+            return lines.ToArray();
+        }
+
+        public IEnumerable<string> BuildFKLines()
+        {
+            var lines = new List<string>();
+            foreach(var column in this.Columns.Where(p => p.FK))
             {
+                var c = column;
+
                 var pName = c.Name.EndsWith("_id") ? c.Name.Left("_id")
                     : c.Name.EndsWith("_key") ? c.Name.Left("_key")
                     : c.Name.EndsWith("Id") ? c.Name.Left("Id")
@@ -77,10 +78,42 @@ namespace MDDBooster.Builders
                 var typeName = c.GetForeignKeyEntityName();
 
                 var line = $@"[ForeignKey(nameof({c.Name}))]
-		public virtual {typeName}{nullable} {pName} {{ get; set; }}";
+		public virtual {typeName}? {pName} {{ get; set; }}";
                 lines.Add(line);
             }
-            return lines.ToArray();
+            return lines;
+        }
+
+        public IEnumerable<string> BuildChildrenLines()
+        {
+            var lines = new List<string>();
+            if (this.meta is TableMeta table)
+            {
+                var children = table.GetChildren();
+                foreach(var child in children)
+                {
+                    foreach(var c in child.GetFkColumns())
+                    {
+                        var nm = c.GetForeignKeyEntityName();
+                        if (table.Name != nm) continue;
+
+                        var pName = child.Name.ToPlural();
+                        if (c.Name.Contains('_'))
+                        { 
+                            // 아무것도 하지 않음
+                        }
+                        else if (c.Name.EndsWith("Key"))
+                            pName = pName + "By" + c.Name.Left("Key");
+
+                        else
+                            throw new NotImplementedException();
+
+                        var line = $@"public virtual List<{child.Name}>? {pName} {{ get; set; }}";
+                        lines.Add(line);
+                    }
+                }
+            }
+            return lines;
         }
 
         protected string BuildUsings()
@@ -117,9 +150,10 @@ using System.Text.Json.Serialization;";
                 ? string.Empty
                 : $" : {baseText}";
 
-            var code = $@"{BuildUsings()}
+            var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
+{BuildUsings()}
 
-namespace {ns}.Data.Entity
+namespace {ns}.Entity
 {{
     public partial interface {className}{baseLine}
     {{
@@ -150,7 +184,10 @@ namespace {ns}.Data.Entity
                 }).ToArray();
             }
 
-            var propertyLines = columns.SelectMany(p => OutputPropertyLines(p));
+            var propertyLines = columns
+                .SelectMany(p => OutputPropertyLines(p))
+                .Concat(this.BuildFKLines())
+                .Concat(this.BuildChildrenLines());
             var propertyLinesText = string.Join($"{Environment.NewLine}{Environment.NewLine}\t\t", propertyLines);
 
             var summary = Name;
@@ -177,9 +214,10 @@ namespace {ns}.Data.Entity
             string code;
             if (meta is AbstractMeta abstractMeta)
             {
-                code = $@"{BuildUsings()}
+                code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
+{BuildUsings()}
 
-namespace {ns}.Data.Entity
+namespace {ns}.Entity
 {{{enumSyntax}
     public abstract partial class {className}{baseLine}
     {{
@@ -189,9 +227,10 @@ namespace {ns}.Data.Entity
             }
             else if (meta is TableMeta tableMeta)
             {
-                code = $@"{BuildUsings()}
+                code = $@"// {Constants.NO_NOT_EDIT_MESSAGE}
+{BuildUsings()}
 
-namespace {ns}.Data.Entity
+namespace {ns}.Entity
 {{{enumSyntax}
     /// <summary>
     /// {summary}

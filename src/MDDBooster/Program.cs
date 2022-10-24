@@ -41,6 +41,7 @@ using IHost host = Host.CreateDefaultBuilder(args)
 
         services.AddSingleton<ModelProjectHandler>();
         services.AddSingleton<DatabaseProjectHandler>();
+        services.AddSingleton<ServerProjectHandler>();
     })
     //.ConfigureLogging(config =>
     //{

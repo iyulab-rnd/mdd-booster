@@ -39,6 +39,7 @@ namespace MDDBooster.Settings
         public string TableFileName { get; set; } = "tables.mdd";
         public ModelProject ModelProject { get; set; }
         public DatabaseProject? DatabaseProject { get; set; }
+        public ServerProject? ServerProject { get; set; }
 
         #endregion
 

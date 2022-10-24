@@ -46,7 +46,8 @@ namespace MDDBooster.Builders
                 nullableUniqueLinesText = $"{Environment.NewLine}{line}";
             }
 
-            var code = $@"CREATE TABLE [dbo].[{Name}]
+            var code = $@"-- # {Constants.NO_NOT_EDIT_MESSAGE}
+CREATE TABLE [dbo].[{Name}]
 (
     {columnLinesText}{uniqueLinesText}
 )
@@ -111,9 +112,15 @@ GO{nullableUniqueLinesText}";
                 cName =  m.GetPKColumn().Name;
             }
 
-            var OnSyntax = c.NN == true ? $"{Environment.NewLine}ON DELETE CASCADE" : null;
+            //var option = c.GetForeignKeyOption();
+            //var onSyntax = option == null
+            //    ? c.NN == true
+            //    ? $"{Environment.NewLine}ON DELETE CASCADE"
+            //    : $"{Environment.NewLine}ON DELETE SET NULL"
+            //    : $"{Environment.NewLine}ON DELETE {option}";
+
             var code = $@"ALTER TABLE [dbo].[{Name}] ADD CONSTRAINT [FK_{Name}_{c.Name}] FOREIGN KEY ([{c.Name}])
-REFERENCES [dbo].[{fkTable}]([{cName}]){OnSyntax}
+REFERENCES [dbo].[{fkTable}]([{cName}])
 GO";
             return code;
         }

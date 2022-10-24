@@ -1,11 +1,5 @@
 ﻿using MDDBooster.Builders;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MDDBooster.Handlers
 {
@@ -36,7 +30,7 @@ namespace MDDBooster.Handlers
             var ns = settings.ModelProject.Namespace;
             if (ns == null) throw new Exception("required settings, model-ns");
 
-            var basePath = Path.Combine(projPath, "Data", "Entity_");
+            var basePath = Path.Combine(projPath, "Entity_");
             if (Directory.Exists(basePath)) Directory.Delete(basePath, true);
             Directory.CreateDirectory(basePath);
 

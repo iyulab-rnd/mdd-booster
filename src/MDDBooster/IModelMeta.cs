@@ -144,6 +144,16 @@ namespace MDDBooster
         public TableMeta(string name, string headline, string body) : base(name, headline, body)
         {
         }
+
+        public IEnumerable<TableMeta> GetChildren()
+        {
+            return Functions.FindChildren(this);
+        }
+
+        internal IEnumerable<ColumnMeta> GetFkColumns()
+        {
+            return this.Columns.Where(p => p.FK);
+        }
     }
 
     public class ColumnMeta
@@ -305,9 +315,8 @@ namespace MDDBooster
         public ColumnMeta(string name, string dataType, string lineText)
         {
 #if DEBUG
-            if (name == "LastAt")
+            if (name == "OwnerKey")
             {
-
             }
 #endif
             Name = name;
@@ -369,7 +378,7 @@ namespace MDDBooster
             this.Attributes = attributes.ToArray();
         }
 
-        private bool IsNotNull() => this.NN == true;
+        internal bool IsNotNull() => this.NN == true;
 
         private void ParseOptions(string lineText)
         {
@@ -377,14 +386,10 @@ namespace MDDBooster
     
             var text = lineText.RightFromFirst(":");
             text = text.Left("//");
-            var optionsText = text.GetBetween("(", ")", true);
 
-            if (string.IsNullOrEmpty(optionsText)) return;
-
-            var options = optionsText.Split(",").Select(p => p.Trim());
-
-            foreach (var option in options)
+            foreach (Match match in Regex.Matches(text, @"\((.*?)\)"))
             {
+                var option = match.Groups[1].Value;
                 if (option.Equals("PK", StringComparison.OrdinalIgnoreCase))
                     this.PK = true;
 
@@ -421,13 +426,26 @@ namespace MDDBooster
         internal string GetForeignKeyEntityName()
         {
             if (LineText.Contains("FK:"))
-                return LineText.GetBetween("FK:", ")");
-
-            else if (Name.Contains("_"))
+            {
+                var s = LineText.GetBetween("FK:", ")");
+                return s.Contains(',') ? s.Left(",") : s;
+            }
+            else if (Name.Contains('_'))
                 return Name.Left("_");
 
             else
                 throw new NotImplementedException();
+        }
+
+        internal string? GetForeignKeyOption()
+        {
+            if (LineText.Contains("FK:"))
+            {
+                var s = LineText.GetBetween("FK:", ")");
+                return s.Contains(',') ? s.Right(",") : null;
+            }
+            else
+                return null;
         }
     }
 
@@ -458,4 +476,5 @@ namespace MDDBooster
             return model;
         }
     }
+
 }
