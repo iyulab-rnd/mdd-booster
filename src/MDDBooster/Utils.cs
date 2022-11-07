@@ -44,5 +44,14 @@ namespace MDDBooster
         {
             return headline.Contains("@abstract");
         }
+
+        internal static string GetNameWithoutKey(string name)
+        {
+            return name.EndsWith("_id") ? name.Left("_id")
+                : name.EndsWith("_key") ? name.Left("_key")
+                : name.EndsWith("Id") ? name.Left("Id")
+                : name.EndsWith("Key") ? name.Left("Key")
+                : throw new Exception("Rule위배: FK는 _id, _key, Id, Key로 끝나야 합니다.");
+        }
     }
 }

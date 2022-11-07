@@ -68,13 +68,7 @@ namespace MDDBooster.Builders
             foreach(var column in this.Columns.Where(p => p.FK))
             {
                 var c = column;
-
-                var pName = c.Name.EndsWith("_id") ? c.Name.Left("_id")
-                    : c.Name.EndsWith("_key") ? c.Name.Left("_key")
-                    : c.Name.EndsWith("Id") ? c.Name.Left("Id")
-                    : c.Name.EndsWith("Key") ? c.Name.Left("Key")
-                    : throw new Exception("Rule위배: FK는 _id, _key, Id, Key로 끝나야 합니다.");
-
+                var pName = Utils.GetNameWithoutKey(c.Name);
                 var typeName = c.GetForeignKeyEntityName();
 
                 var line = $@"[ForeignKey(nameof({c.Name}))]
