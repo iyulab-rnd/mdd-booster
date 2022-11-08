@@ -145,6 +145,8 @@ using System.Text.Json.Serialization;";
                 : $" : {baseText}";
 
             var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
+#pragma warning disable CS8618, IDE1006
+
 {BuildUsings()}
 
 namespace {ns}.Entity
@@ -153,7 +155,9 @@ namespace {ns}.Entity
     {{
         {propertyLinesText}
     }}
-}}";
+}}
+
+#pragma warning restore CS8618, IDE1006";
             code = code.Replace("\t", "    ");
             var path = Path.Combine(basePath, $"{className}.cs");
             File.WriteAllText(path, code);
@@ -209,6 +213,8 @@ namespace {ns}.Entity
             if (meta is AbstractMeta abstractMeta)
             {
                 code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
+#pragma warning disable CS8618, IDE1006
+
 {BuildUsings()}
 
 namespace {ns}.Entity
@@ -217,11 +223,15 @@ namespace {ns}.Entity
     {{
 		{propertyLinesText}
     }}
-}}";
+}}
+
+#pragma warning restore CS8618, IDE1006";
             }
             else if (meta is TableMeta tableMeta)
             {
                 code = $@"// {Constants.NO_NOT_EDIT_MESSAGE}
+#pragma warning disable CS8618, IDE1006
+
 {BuildUsings()}
 
 namespace {ns}.Entity
@@ -234,7 +244,9 @@ namespace {ns}.Entity
     {{
 		{propertyLinesText}
     }}
-}}";
+}}
+
+#pragma warning restore CS8618, IDE1006";
             }
             else
                 throw new NotImplementedException();

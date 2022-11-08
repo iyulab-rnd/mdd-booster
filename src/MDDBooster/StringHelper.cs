@@ -77,7 +77,11 @@ namespace MDDBooster
         public static string ToPlural(this string name)
         {
             var pluralizer = new Pluralizer();
-            return pluralizer.Pluralize(name);
+            var r = pluralizer.Pluralize(name);
+            if (r == name)
+                return name + "es";
+            else
+                return r;
         }
 
         /// <summary>

@@ -36,6 +36,11 @@ namespace MDDBooster.Handlers
                 settings.ServerProject.Namespace,
                 basePath);
 
+            if (settings.ServerProject.UseGraphQL)
+            {
+                BuildGraphQL(models, settings);
+            }
+
             await Task.CompletedTask;
         }
 
@@ -51,6 +56,13 @@ namespace MDDBooster.Handlers
             logger.LogInformation("Build EntitySet");
             var builder = new EntitySetBuilder(models);
             builder.Build(modelNS, serverNS, basePath);
+        }
+
+        private void BuildGraphQL(IModelMeta[] models, Settings.Settings settings)
+        {
+            logger.LogInformation("Build GraphQL");
+            var builder = new GraphQLBuilder(models, settings);
+            builder.Build();
         }
     }
 }

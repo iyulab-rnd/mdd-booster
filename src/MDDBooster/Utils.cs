@@ -4,13 +4,16 @@ namespace MDDBooster
 {
     public static class Utils
     {
-        internal static string? ResolvePath(string? basePath, string parameterPath, string? fileName = null)
+        internal static string ResolvePath(string? basePath, params string[] subPaths)
         {
-            if (parameterPath == null) return null;
-            if (Path.IsPathRooted(parameterPath)) return parameterPath;
-
             basePath ??= Assembly.GetExecutingAssembly().Location;
+
+            var fistPath = subPaths.FirstOrDefault();
+            if (fistPath == null) return basePath;
+            if (Path.IsPathRooted(fistPath)) return fistPath;
+
             var cd = new DirectoryInfo(basePath);
+            var parameterPath = string.Join("/", subPaths);
             var splits = parameterPath.Replace(@"\", "/").Split("/");
 
             var paths = new List<string>();
@@ -28,11 +31,7 @@ namespace MDDBooster
 
             paths.Insert(0, cd.ToString());
             var dir = new DirectoryInfo(Path.Combine(paths.ToArray()));
-            if (fileName == null)
-                return dir.ToString();
-
-            else
-                return System.IO.Path.Combine(dir.ToString(), fileName);
+            return dir.ToString();
         }
 
         internal static bool IsInterfaceName(string name)
@@ -52,6 +51,12 @@ namespace MDDBooster
                 : name.EndsWith("Id") ? name.Left("Id")
                 : name.EndsWith("Key") ? name.Left("Key")
                 : throw new Exception("Rule위배: FK는 _id, _key, Id, Key로 끝나야 합니다.");
+        }
+
+        internal static void ResetDirectory(string path)
+        {
+            if (Directory.Exists(path)) Directory.Delete(path, true);
+            Directory.CreateDirectory(path);
         }
     }
 }
