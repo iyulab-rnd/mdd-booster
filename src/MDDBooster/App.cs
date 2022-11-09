@@ -11,7 +11,6 @@ namespace MDDBooster
         private readonly ILogger<App> logger;
         private readonly Runner runner;
 
-
         public App(ILogger<App> logger, Runner runner)
         {
             this.logger = logger;

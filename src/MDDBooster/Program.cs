@@ -1,12 +1,12 @@
 ﻿using MDDBooster;
 using MDDBooster.Handlers;
 using MDDBooster.Settings;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using System.Reflection;
+using System.Diagnostics;
 using System.Text.Json;
+
+var stopwatch = Stopwatch.StartNew();
 
 #if DEBUG
 args = new string[] { @"D:/data/Plands/Plands.Core/data" };
@@ -52,3 +52,5 @@ using IHost host = Host.CreateDefaultBuilder(args)
 
 var app = host.Services.GetRequiredService<App>();
 await app.RunAsync();
+
+Console.WriteLine($"Code Generated Done. {stopwatch.Elapsed}");
