@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
@@ -11,6 +13,32 @@ namespace MDDBooster.Builders
     {
         private readonly IModelMeta[] models;
         private readonly Settings.Settings settings;
+
+        private static readonly Dictionary<Type, string> mapGraphTypes = new()
+        {
+            //{ typeof(int), "IdGraphType" },
+            { typeof(Guid), "GuidGraphType" },
+            { typeof(string), "StringGraphType" },
+            { typeof(int), "IntGraphType" },
+            { typeof(BigInteger), "BigIntGraphType" },
+            { typeof(bool), "BooleanGraphType" },
+            { typeof(Byte), "ByteGraphType" },
+            //{ typeof(DateOnly), "DateGraphType" },
+            { typeof(DateOnly), "DateOnlyGraphType" },
+            { typeof(DateTime), "DateTimeGraphType" },
+            { typeof(DateTimeOffset), "DateTimeOffsetGraphType" },
+            { typeof(TimeOnly), "TimeOnlyGraphType" },
+            //{ typeof(TimeSpan), "TimeSpanMillisecondsGraphType" },
+            { typeof(TimeSpan), "TimeSpanSecondsGraphType" },
+            { typeof(Decimal), "DecimalGraphType" },
+            //{ typeof(int), "EnumerationGraphType" },
+            { typeof(float), "FloatGraphType" },
+            { typeof(long), "LongGraphType" },
+            { typeof(uint), "UIntGraphType" },
+            { typeof(ulong), "ULongGraphType" },
+            { typeof(ushort), "UShortGraphType" },
+            { typeof(Uri), "UriGraphType" }
+        };
 
         public GraphQLBuilder(IModelMeta[] models, Settings.Settings settings)
         {
@@ -37,6 +65,18 @@ namespace MDDBooster.Builders
                 var name = table.Name;
                 var pName = table.Name.ToPlural();
 
+                var sbPropertyLines = new StringBuilder();
+                foreach (var column in table.FullColumns)
+                {
+                    var sysType = column.GetSystemType();
+                    if (sysType == typeof(Guid) || sysType == typeof(string))
+                    {
+                        var typeName = column.GetSystemTypeAlias();
+                        var propertyName = column.Name.ToPlural();
+                        sbPropertyLines.AppendLine($"\t\tpublic {typeName}[]? {propertyName} {{ get; set; }}");
+                    }
+                }
+
                 var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
 #pragma warning disable CS8618, IDE1006
 
@@ -53,8 +93,7 @@ namespace {modelNS}.Gql
 
     public class {pName}SearchRequest : PageRequestBase, IGqlSearchRequest<{name}>
     {{
-        public Guid[]? _keys {{ get; set; }}
-        public string[]? ColumnAs {{ get; set; }}
+{sbPropertyLines}
     }}
 }}
 
@@ -179,6 +218,23 @@ namespace {ns}.Gql
             var entityName = table.Name;
             var entityNames = table.Name.ToPlural();
 
+            var sbPropertyLines = new StringBuilder();
+            foreach (var column in table.FullColumns)
+            {
+                var sysType = column.GetSystemType();
+                if ((sysType == typeof(Guid) || sysType == typeof(string)) && TryGetGraphType(column, out var gType))
+                {
+                    var line = $@"
+                new QueryArgument<ListGraphType<{gType}>>
+                {{
+                    Name = nameof({entityNames}SearchRequest.{column.Name.ToPlural()}),
+                }},";
+
+                    sbPropertyLines.Append(line);
+                }
+            }
+
+
             var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
 using GraphQL.Types;
 using Iyu;
@@ -207,7 +263,7 @@ namespace {serverNS}.Gql.Schemas
         }}
     }}
 
-    public class {entityNames}FieldType: FieldType
+    public class {entityNames}FieldType : FieldType
     {{
         public {entityNames}FieldType()
         {{
@@ -216,15 +272,7 @@ namespace {serverNS}.Gql.Schemas
             this.Type = typeof(ListGraphType<{entityName}GraphType>);
 
             this.Arguments = new QueryArguments(new List<QueryArgument>
-            {{
-                new QueryArgument<ListGraphType<IdGraphType>>
-                {{
-                    Name = nameof({entityNames}SearchRequest._keys),
-                }},
-                new QueryArgument<ListGraphType<StringGraphType>>
-                {{
-                    Name = nameof({entityNames}SearchRequest.ColumnAs)
-                }},
+            {{{sbPropertyLines}
                 new QueryArgument<IntGraphType>
                 {{
                     Name = nameof({entityNames}SearchRequest.Page)
@@ -244,11 +292,54 @@ namespace {serverNS}.Gql.Schemas
             App.Current.WriteFile(path, code);
         }
 
+        private static bool TryGetGraphType(ColumnMeta column, out string graphType)
+        {
+            if (column.PK)
+            {
+                graphType = "IdGraphType";
+                return true;
+            }
+            else if (mapGraphTypes.TryGetValue(column.GetSystemType(), out graphType))
+            {
+                return true;
+            }
+            else
+                return false;
+        }
+
         private void BuildSchemaGraphType(string basePath, TableMeta table)
         {
             var modelNS = settings.ModelProject.Namespace;
             var serverNS = settings.ServerProject!.Namespace;
             var entityName = table.Name;
+
+            var fieldLines = new List<string>();
+            foreach (var column in table.FullColumns)
+            {
+                var cName = column.Name;
+                if (TryGetGraphType(column, out var gTypeName))
+                {
+                    string line;
+                    if (column.IsNotNull())
+                    {
+                        line = $"AddField(new FieldType() {{ Name = nameof({entityName}.{cName}), Type = typeof(NonNullGraphType<{gTypeName}>) }});";
+                    }
+                    else
+                    {
+                        line = $"AddField(new FieldType() {{ Name = nameof({entityName}.{cName}), Type = typeof({gTypeName}) }});";
+                    }
+                    fieldLines.Add(line);
+                }
+            }
+
+            foreach (var child in table.GetChildren())
+            {
+                var name = child.Name.ToPlural();
+                var line = $"AddField(new {name}FieldType() {{ Resolver = repository.GetResolver{name}() }});";
+                fieldLines.Add(line);
+            }
+
+            var fieldLinesText = string.Join($"{Environment.NewLine}\t\t\t", fieldLines);
 
             var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
 using GraphQL.Types;
@@ -260,11 +351,9 @@ namespace {serverNS}.Gql.Schemas
     {{
         public {entityName}GraphType({entityName}Repository repository)
         {{
-            Name = ""tableMain"";
+            Name = nameof({entityName});
 
-            AddField(new FieldType() {{ Name = nameof({entityName}._key), Type = typeof(NonNullGraphType<IdGraphType>) }});
-            //AddField(new FieldType() {{ Name = nameof({entityName}.ColumnA), Type = typeof(StringGraphType) }});
-            //AddField(new TableSubsFieldType() {{ Resolver = repository.GetResolverTableSubs() }});
+            {fieldLinesText}
         }}
     }}
 }}";
@@ -307,6 +396,32 @@ namespace {serverNS}.Gql.Schemas
             var entityName = table.Name;
             var entityNames = table.Name.ToPlural();
 
+            var childResolverLinesSB = new StringBuilder();
+            foreach (var child in table.GetChildren())
+            {
+                var childName = child.Name;
+                var childNames = child.Name.ToPlural();
+                var line = $@"
+        internal IFieldResolver GetResolver{childNames}()
+        {{
+            var r = new FuncFieldResolver<{entityName}, IEnumerable<{childName}>> (context =>
+            {{
+                var request = new {childNames}SearchRequest()
+                {{
+                    //{entityName}_keys = new Guid[] {{ context.Source._key }},
+                    Columns = context.GetSelectColumns(),
+                    Page = context.HasArgument(""Page"") ? context.GetArgument<int>(""Page"") : null,
+                    PageSize = context.HasArgument(""PageSize"") ? context.GetArgument<int>(""PageSize"") : null,
+                }};
+                var query = resolver.FindAsync(request);
+                return new ValueTask<IEnumerable<{childName}>>(query)!;
+            }});
+
+            return r;
+        }}";
+                childResolverLinesSB.AppendLine(line);
+            }
+
             var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
 using GraphQL;
 using GraphQL.Resolvers;
@@ -346,7 +461,6 @@ namespace {serverNS}.Gql.Schemas
                 .Query(nameof({entityName}))
                 .When(request.Columns != null && request.Columns.AnyItem(), q => q.Select(request.Columns))
                 .When(request._keys != null && request._keys.AnyItem(), q => q.WhereIn(nameof({entityName}._key), request._keys))
-                //.When(request.ColumnAs != null && request.ColumnAs.AnyItem(), q => q.WhereIn(nameof({entityName}.ColumnA), request.ColumnAs))
                 .ForPage(request.Page ?? request.DefaultPage, request.PageSize ?? request.DefaultPageSize)
                 .GetAsync<{entityName}>();
 
@@ -376,7 +490,6 @@ namespace {serverNS}.Gql.Schemas
                 var request = new {entityNames}SearchRequest()
                 {{
                     _keys = context.GetArgument<Guid[]?>(nameof({entityNames}SearchRequest._keys)),
-                    ColumnAs = context.GetArgument<string[]?>(nameof({entityNames}SearchRequest.ColumnAs)),
                     Columns = context.GetSelectColumns(),
                     Page = context.HasArgument(""Page"") ? context.GetArgument<int>(""Page"") : null,
                     PageSize = context.HasArgument(""PageSize"") ? context.GetArgument<int>(""PageSize"") : null,
@@ -387,24 +500,7 @@ namespace {serverNS}.Gql.Schemas
 
             return r;
         }}
-
-        internal IFieldResolver GetResolverTableSubs()
-        {{
-            var r = new FuncFieldResolver<{entityName}, IEnumerable<TableSub>>(context =>
-            {{
-                var request = new TableSubsSearchRequest()
-                {{
-                    //{entityName}_keys = new Guid[] {{ context.Source._key }},
-                    Columns = context.GetSelectColumns(),
-                    Page = context.HasArgument(""Page"") ? context.GetArgument<int>(""Page"") : null,
-                    PageSize = context.HasArgument(""PageSize"") ? context.GetArgument<int>(""PageSize"") : null,
-                }};
-                var query = resolver.FindAsync(request);
-                return new ValueTask<IEnumerable<TableSub>>(query)!;
-            }});
-
-            return r;
-        }}
+        {childResolverLinesSB}
     }}
 }}";
             var fileName = $"{table.Name}Repository.cs";
