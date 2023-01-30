@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 
 namespace MDDBooster
 {
-    internal class Runner
+    internal partial class Runner
     {
         private readonly ILogger<Runner> logger;
         private readonly Settings.Settings settings;
@@ -29,8 +29,10 @@ namespace MDDBooster
         internal async Task RunAsync()
         {
             var filePath = settings.GetTablesFilePath();
-            if (System.IO.File.Exists(filePath) != true) throw new Exception($"cannot find tables file");
+            if (File.Exists(filePath) != true) throw new Exception($"cannot find tables file");
 
+            logger.LogInformation("running");
+            
             var fileText = await File.ReadAllTextAsync(filePath);
             var models = Parse(fileText);
 
@@ -39,11 +41,13 @@ namespace MDDBooster
             await databaseProjectHandler.RunAsync(models);
             await modelProjectHandler.RunAsync(models);
             await serverProjectHandler.RunAsync(models);
+
+            logger.LogInformation("done.");
         }
 
         private static IModelMeta[] Parse(string text)
         {
-            var maches = Regex.Matches(text, @"\#\s+(.*?)(\r\n\r\n|$)", RegexOptions.Singleline);
+            var maches = ScopedRegex().Matches(text);
 
             var models = new List<IModelMeta>();
 
@@ -106,5 +110,8 @@ namespace MDDBooster
 
             return models.ToArray();
         }
+
+        [GeneratedRegex("\\#\\s+(.*?)(\\r\\n\\r\\n|$)", RegexOptions.Singleline)]
+        private static partial Regex ScopedRegex();
     }
 }
