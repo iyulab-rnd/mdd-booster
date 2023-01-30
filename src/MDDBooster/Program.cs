@@ -9,7 +9,7 @@ using System.Text.Json;
 var stopwatch = Stopwatch.StartNew();
 
 #if DEBUG
-args = new string[] { @"D:/data/Plands/Plands.Core/data" };
+args = new string[] { @"D:\data\AICenter\mdd" };
 #endif
 
 if (args.Length < 1) args = new string[] { Environment.CurrentDirectory };

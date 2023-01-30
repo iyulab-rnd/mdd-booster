@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace MDDBooster
@@ -42,12 +43,18 @@ namespace MDDBooster
             Headline = headline;
             Body = body;
             Name = name;
+
+            if (Name.GetBetween("(", ")") is string s)
+            {
+                Label = s;
+            }
         }
 
         private ColumnMeta[]? _Columns;
         private ColumnMeta[]? _FullColumns;
         private string? abstractName;
 
+        public string Label { get; private set; }
         public ColumnMeta[] Columns => _Columns ??= BuildColumns();
         public ColumnMeta[] FullColumns => _FullColumns ??= BuildFullColumns();
 
@@ -241,6 +248,9 @@ namespace MDDBooster
         public string? Default { get; set; }
         public string[]? Attributes { get; set; }
         public string LineText { get; set; }
+        public string Label { get; }
+        public string ShortName { get; }
+        public string Description { get; }
 
         public Type GetSystemType()
         {
@@ -320,6 +330,7 @@ namespace MDDBooster
             }
 #endif
             Name = name;
+            LineText = lineText;
 
             if (dataType.EndsWith("?"))
             {
@@ -337,6 +348,23 @@ namespace MDDBooster
                 DataType = dataType;
             }
 
+            if (lineText.RegexReturn(@"\-\s\w+(?:|\?)\((.*?)\)", 1) is string labelText)
+            {
+                if (labelText.Contains(','))
+                {
+                    this.Label = labelText.Left(",").Trim();
+                    this.ShortName = labelText.Right(",").Trim();
+                }
+                else
+                {
+                    this.Label = labelText.Trim();
+                }
+            }
+            else
+            {
+                this.Label = name;
+            }
+
             if (lineText.GetBetween($"{DataType}(", ")") is string s)
             {
                 if (int.TryParse(s, out var size))
@@ -346,13 +374,16 @@ namespace MDDBooster
                     Size = "max";
             }
 
+            if (lineText.Contains("//") && lineText.Right("//") is string description)
+            {
+                this.Description = description.Trim();
+            }
+
             ParseOptions(lineText);
             ParseAttribtes(lineText);
 
             if (this.FK != true && this.Name.StartsWith("_") != true && (this.Name.EndsWith("_id") || this.Name.EndsWith("_key")))
                 this.FK = true;
-
-            this.LineText = lineText;
         }
 
         private void ParseAttribtes(string lineText)
@@ -367,6 +398,19 @@ namespace MDDBooster
             if (this.IsNotNull())
             {
                 attributes.Add("[Required]");
+            }
+
+            // Display
+            var displaySb = new StringBuilder();
+            displaySb.Append($"[Display(Name = \"{this.Label}\"");
+            if (this.ShortName != null) displaySb.Append($", ShortName = \"{this.ShortName}\"");
+            if (this.Description != null) displaySb.Append($", Description = \"{this.Description}\"");
+            attributes.Add($"{displaySb})]");
+
+            // MaxLength
+            if (this.GetSize() is string size && size != "max")
+            {
+                attributes.Add($"[MaxLength({size})]");
             }
 
             var m = Regex.Matches(lineText, @"\[.*?\]");

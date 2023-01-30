@@ -64,6 +64,12 @@ namespace {ns}.Services
             var sb = new StringBuilder();
             foreach (var table in tables)
             {
+                if (table.GetChildren().Any())
+                {
+                    var line = $"modelBuilder.Entity<{table.Name}>().ToTable(tb => tb.HasTrigger(\"{table.Name}Trigger\"));";
+                    sb.AppendLine(line);
+                }
+
                 foreach (var column in table.Columns)
                 {
                     if (column.FK && column.Name.Contains('_') != true)
@@ -78,6 +84,7 @@ namespace {ns}.Services
                         sb.AppendLine(line);
                     }
                 }
+                
             }
             return sb.ToString();
         }

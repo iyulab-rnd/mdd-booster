@@ -259,7 +259,7 @@ namespace {serverNS}.Gql.Schemas
                 }}
             }});
 
-            this.Resolver = IoC.GetService<{entityName}Repository>().GetResolverFindOne();
+            this.Resolver = IoC.Resolve<{entityName}Repository>().GetResolverFindOne();
         }}
     }}
 
@@ -283,7 +283,7 @@ namespace {serverNS}.Gql.Schemas
                 }},
             }});
 
-            this.Resolver = IoC.GetService<{entityName}Repository>().GetResolverFind();
+            this.Resolver = IoC.Resolve<{entityName}Repository>().GetResolverFind();
         }}
     }}
 }}";
@@ -449,7 +449,7 @@ namespace {serverNS}.Gql.Schemas
             var query = resolver.ResolveQueryFactory()
                 .Query(nameof({entityName}))
                 .When(request.Columns.AnyItem(), q => q.Select(request.Columns))
-                .Where(q => q.Where(nameof(TableSub._key), request._key))
+                .Where(q => q.Where(""_key"", request._key))
                 .FirstOrDefaultAsync<{entityName}?>();
 
             return query;

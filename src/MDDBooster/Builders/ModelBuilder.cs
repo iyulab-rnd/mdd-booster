@@ -112,7 +112,8 @@ namespace MDDBooster.Builders
 
         protected string BuildUsings()
         {
-            var defaultUsing = @"using System.ComponentModel.DataAnnotations;
+            var defaultUsing = @"using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;";
 
@@ -229,6 +230,15 @@ namespace {ns}.Entity
             }
             else if (meta is TableMeta tableMeta)
             {
+                var attributes = new List<string>
+                {
+                    $"[Table(name: \"{tableName}\")]"
+                };
+                if (tableMeta.Label != tableMeta.Name)
+                {
+                    attributes.Add($"[DisplayName(\"{tableName}\")]");
+                }
+                var attributesText = string.Join("\r\n\t", attributes);
                 code = $@"// {Constants.NO_NOT_EDIT_MESSAGE}
 #pragma warning disable CS8618, IDE1006
 
@@ -239,7 +249,7 @@ namespace {ns}.Entity
     /// <summary>
     /// {summary}
     /// </summary>
-    [Table(name: ""{tableName}"")]
+    {attributesText}
     public partial class {className}{baseLine}
     {{
 		{propertyLinesText}
