@@ -135,7 +135,7 @@ using {ns}.Gql.Schemas;
 
 namespace {ns}.Gql
 {{
-    internal partial class AppGqlQuery : ObjectGraphType<object>
+    public partial class AppGqlQuery : ObjectGraphType<object>
     {{
         public AppGqlQuery(IServiceProvider provider)
         {{
@@ -164,7 +164,7 @@ using GraphQL.Types;
 
 namespace {ns}.Gql
 {{
-    internal partial class AppGqlSchema : Schema
+    public partial class AppGqlSchema : Schema
     {{
         public AppGqlSchema(IServiceProvider provider) : base(provider)
         {{
@@ -191,7 +191,7 @@ using Iyu.Server.OData.Gql;
 
 namespace {ns}.Gql
 {{
-    internal partial class AppGqlValidationRule : GqlValidationRule
+    public partial class AppGqlValidationRule : GqlValidationRule
     {{
     }}
 }}";

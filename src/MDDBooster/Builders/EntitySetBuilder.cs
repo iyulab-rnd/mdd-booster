@@ -36,9 +36,9 @@ using {modelNS}.Entity;
 
 namespace {serverNS}.Services
 {{
-    internal partial class EntitySetBuilder
+    public partial class EntitySetBuilder
     {{
-        internal static ODataConventionModelBuilder AddAll(ODataConventionModelBuilder builder)
+        public static ODataConventionModelBuilder AddAll(ODataConventionModelBuilder builder)
         {{
             var esBuilder = new EntitySetBuilder();
 {addfunc}
