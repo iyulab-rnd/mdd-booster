@@ -30,9 +30,9 @@ namespace MDDBooster.Handlers
             if (Directory.Exists(tablesPath)) Directory.Delete(tablesPath, true);
             Directory.CreateDirectory(tablesPath);
 
-            var triggersPath = Path.Combine(projPath, "dbo", "Triggers_");
-            if (Directory.Exists(triggersPath)) Directory.Delete(triggersPath, true);
-            Directory.CreateDirectory(triggersPath);
+            //var triggersPath = Path.Combine(projPath, "dbo", "Triggers_");
+            //if (Directory.Exists(triggersPath)) Directory.Delete(triggersPath, true);
+            //Directory.CreateDirectory(triggersPath);
 
             foreach (var m in models.OfType<TableMeta>())
             {
@@ -41,8 +41,8 @@ namespace MDDBooster.Handlers
                 var builder = new SqlBuilder(m);
                 builder.Build(tablesPath);
 
-                var triggerBuilder = new SqlTriggerBuilder(m);
-                triggerBuilder.Build(triggersPath);
+                //var triggerBuilder = new SqlTriggerBuilder(m);
+                //triggerBuilder.Build(triggersPath);
             }
 
             await Task.CompletedTask;

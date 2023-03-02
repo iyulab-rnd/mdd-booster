@@ -23,6 +23,10 @@ namespace MDDBooster
         {
             logger.LogInformation("running...");
 
+#if DEBUG
+            await runner.RunAsync();
+            logger.LogInformation("done.");
+#else
             try
             {
                 await runner.RunAsync();
@@ -34,6 +38,7 @@ namespace MDDBooster
                 logger.LogError($"{e.Message}{Environment.NewLine}{e.StackTrace}");
                 await Task.Delay(TimeSpan.FromSeconds(1));
             }
+#endif
         }
 
         internal void WriteFile(string path, string code)

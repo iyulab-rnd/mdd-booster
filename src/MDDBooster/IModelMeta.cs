@@ -18,6 +18,7 @@ namespace MDDBooster
             return meta.Headline
                 .Right(":")
                 .Split(",")
+                .Where(p => p.Length > 0)
                 .Select(p => p.Trim())
                 .Where(n => n[0] >= 'A' && n[0] <= 'Z')
                 .ToArray();
@@ -30,6 +31,7 @@ namespace MDDBooster
         public string Headline { get; }
         public string Body { get; }
 
+        public string[] Extensions { get; internal set; }
         public InterfaceMeta[]? Interfaces { get; internal set; }
         public AbstractMeta? Abstract { get; internal set; }
         public string? AbstractName 
@@ -47,6 +49,15 @@ namespace MDDBooster
             if (Name.GetBetween("(", ")") is string s)
             {
                 Label = s;
+            }
+
+            if (headline.Right(":") is string right && right.Length > 0)
+            {
+                var line = right.LeftOr("//");
+                this.Extensions = line.Split(",")
+                    .Select(p => p.Trim())
+                    .Where(p => p.StartsWith("@") != true)
+                    .ToArray();
             }
         }
 
@@ -239,15 +250,15 @@ namespace MDDBooster
 
         public string Name { get; }
         public string DataType { get; }
-        public bool PK { get; set; } // primary key
-        public bool FK { get; set; } // foreign key
-        public bool UQ { get; set; } // unique
-        public bool UI { get; set; } // use index
-        public bool? NN { get; set; } // not null
-        public string? Size { get; set; }
-        public string? Default { get; set; }
-        public string[]? Attributes { get; set; }
-        public string LineText { get; set; }
+        public bool PK { get; private set; } // primary key
+        public bool FK { get; private set; } // foreign key
+        public bool UQ { get; private set; } // unique
+        public bool UI { get; private set; } // use index
+        public bool? NN { get; private set; } // not null
+        public string? Size { get; private set; }
+        public string? Default { get; private set; }
+        public string[]? Attributes { get; private set; }
+        public string LineText { get; private set; }
         public string Label { get; }
         public string ShortName { get; }
         public string Description { get; }
@@ -383,7 +394,13 @@ namespace MDDBooster
             ParseAttribtes(lineText);
 
             if (this.FK != true && this.Name.StartsWith("_") != true && (this.Name.EndsWith("_id") || this.Name.EndsWith("_key")))
-                this.FK = true;
+                FK = true;
+
+            if (this.FK)
+            {
+                var fkEntityName = this.Name.Left("_");
+                this.Attributes = this.Attributes!.Append($"[FK(typeof({fkEntityName}))]").ToArray();
+            }
         }
 
         private void ParseAttribtes(string lineText)
@@ -427,16 +444,18 @@ namespace MDDBooster
         private void ParseOptions(string lineText)
         {
             //if (Name == "NormalizedEmail") Console.WriteLine(1);
-    
-            var text = lineText.RightFromFirst(":");
-            text = text.Left("//");
+
+            var text = lineText.RightOr(":", include: false, lastTo: false).Trim();
+            text = text.LeftOr("//");
 
             foreach (Match match in Regex.Matches(text, @"\((.*?)\)"))
             {
                 var option = match.Groups[1].Value;
                 if (option.Equals("PK", StringComparison.OrdinalIgnoreCase))
+                {
                     this.PK = true;
-
+                    this.NN = true;
+                }
                 else if (option.StartsWith("FK", StringComparison.OrdinalIgnoreCase))
                     this.FK = true;
 

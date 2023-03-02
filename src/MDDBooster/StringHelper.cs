@@ -12,7 +12,7 @@ namespace MDDBooster
             return m.Success ? m.Groups[index].Value : null;
         }
 
-        public static string Left(this string input, string search, bool last = false)
+        public static string LeftOr(this string input, string search, bool last = false)
         {
             if (input == null) return string.Empty;
 
@@ -23,18 +23,33 @@ namespace MDDBooster
             return input[..n];
         }
 
-        public static string RightFromFirst(this string input, string search)
+        public static string Left(this string input, string search, bool last = false)
         {
             if (input == null) return string.Empty;
 
-            var n = input.IndexOf(search);
-            if (n < 0) return input;
-            return input[(n + search.Length)..];
+            var n = last
+                ? input.LastIndexOf(search)
+                : input.IndexOf(search);
+            if (n < 0) return string.Empty;
+            return input[..n];
         }
 
-        public static string Right(this string input, string search, bool include = false)
+        public static string Right(this string input, string search, bool include = false, bool lastTo = true)
         {
-            var n = input.LastIndexOf(search);
+            var n = lastTo ? input.LastIndexOf(search) : input.IndexOf(search);
+            if (n < 0)
+                return string.Empty;
+
+            else if (include)
+                return input[n..];
+
+            else
+                return input[(n + search.Length)..];
+        }
+
+        public static string RightOr(this string input, string search, bool include = false, bool lastTo = true)
+        {
+            var n = lastTo ? input.LastIndexOf(search) : input.IndexOf(search);
             if (n < 0)
                 return input;
 

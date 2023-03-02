@@ -112,15 +112,15 @@ GO{nullableUniqueLinesText}";
                 cName =  m.GetPKColumn().Name;
             }
 
-            //var option = c.GetForeignKeyOption();
-            //var onSyntax = option == null
-            //    ? c.NN == true
-            //    ? $"{Environment.NewLine}ON DELETE CASCADE"
-            //    : $"{Environment.NewLine}ON DELETE SET NULL"
-            //    : $"{Environment.NewLine}ON DELETE {option}";
+            var option = c.GetForeignKeyOption();
+            var onSyntax = option == null
+                ? c.NN == true
+                ? $" ON DELETE CASCADE"
+                : $" ON DELETE SET NULL"
+                : string.Empty;
 
             var code = $@"ALTER TABLE [dbo].[{Name}] ADD CONSTRAINT [FK_{Name}_{c.Name}] FOREIGN KEY ([{c.Name}])
-REFERENCES [dbo].[{fkTable}]([{cName}])
+REFERENCES [dbo].[{fkTable}]([{cName}]){onSyntax}
 GO";
             return code;
         }
@@ -139,8 +139,6 @@ GO";
             {
                 typeText += $"({size.ToUpper()})";
             }
-
-            if (c.PK) c.NN = true;
 
             var notnullText = c.NN is null || (bool)c.NN == false ? "NULL" : "NOT NULL";
             var output = $"[{c.Name}] {typeText} {notnullText}";

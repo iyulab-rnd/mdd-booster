@@ -202,6 +202,16 @@ namespace {ns}.Entity
                 baseEntities = baseEntities.Concat(meta.Interfaces.Select(p => p.Name)).ToArray();
             }
 
+            if (meta.Extensions != null)
+            {
+                foreach(var extension in meta.Extensions)
+                {
+                    if (baseEntities.Contains(extension)) continue;
+
+                    baseEntities = baseEntities.Append(extension).ToArray();
+                }
+            }
+
             var baseText = string.Join(", ", baseEntities);
 
             var baseLine = string.IsNullOrWhiteSpace(baseText)

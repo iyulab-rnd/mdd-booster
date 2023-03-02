@@ -55,7 +55,7 @@ namespace MDDBooster
             {
                 var content = m.ToString();
                 if (string.IsNullOrEmpty(content)) continue;
-
+                
                 var model = ModelMetaFactory.Create(content);
                 if (model == null) continue;
 
