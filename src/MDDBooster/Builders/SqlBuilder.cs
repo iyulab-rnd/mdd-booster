@@ -147,7 +147,7 @@ GO";
             if (c.PK)
             {
                 output += " PRIMARY KEY";
-                if (defaultValue == null && c.GetSystemType() == typeof(Guid))
+                if ((defaultValue == null && c.GetSystemType() == typeof(Guid)))
                 {
                     defaultValue = "NEWID()";
                 }
@@ -162,7 +162,32 @@ GO";
             }
 
             if (string.IsNullOrEmpty(defaultValue) != true)
+            {
+                if (systemType == typeof(string))
+                {
+                    if (defaultValue.StartsWith("\""))
+                    {
+                        defaultValue = $"'{defaultValue.GetBetween("\"", "\"")}'";
+                    }
+                    else if (defaultValue.StartsWith("'") != true)
+                    {
+                        defaultValue = $"'{defaultValue}'";
+                    }
+
+                    if (defaultValue.StartsWith("'"))
+                    {
+                        defaultValue = $"N{defaultValue}";
+                    }
+                }
+
+                if (defaultValue.Contains("@by"))
+                    defaultValue = "NEWID()";
+
+                else if (defaultValue.Contains("@now"))
+                    defaultValue = "GETDATE()";
+
                 output += $" DEFAULT {defaultValue}";
+            }
 
             return output;
         }

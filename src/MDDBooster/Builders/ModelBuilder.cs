@@ -24,12 +24,30 @@ namespace MDDBooster.Builders
                 attributesText += $"{Environment.NewLine}\t\t";
             }
 
+            var sysType = c.GetSystemType();
             var typeAlias = c.GetSystemTypeAlias();
+
             var nullable = c.NN == null || (bool)c.NN == false ? "?" : string.Empty;
+            var required = c.NN != null && c.NN == true ? "required " : string.Empty;
+
+            var defaultText = string.Empty;
+            if (c.Default != null)
+            {
+                if (c.Default.Contains("@by"))
+                    defaultText = $" = {c.Default};";
+
+                else if (c.Default.Contains("@now"))
+                    defaultText = $" = DateTime.Now;";
+                
+                else
+                    defaultText = $" = {c.Default};";
+
+                required = string.Empty;
+            }
 
             var lines = new List<string>()
             {
-                @$"{attributesText}public {typeAlias}{nullable} {c.Name} {{ get; set; }}"
+                @$"{attributesText}public {required}{typeAlias}{nullable} {c.Name} {{ get; set; }}{defaultText}"
             };
 
             if (c.IsEnumType())
@@ -146,8 +164,6 @@ using System.Text.Json.Serialization;";
                 : $" : {baseText}";
 
             var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
-#pragma warning disable CS8618, IDE1006
-
 {BuildUsings()}
 
 namespace {ns}.Entity
@@ -156,9 +172,7 @@ namespace {ns}.Entity
     {{
         {propertyLinesText}
     }}
-}}
-
-#pragma warning restore CS8618, IDE1006";
+}}";
             code = code.Replace("\t", "    ");
             var path = Path.Combine(basePath, $"{className}.cs");
             File.WriteAllText(path, code);
@@ -224,8 +238,6 @@ namespace {ns}.Entity
             if (meta is AbstractMeta abstractMeta)
             {
                 code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
-#pragma warning disable CS8618, IDE1006
-
 {BuildUsings()}
 
 namespace {ns}.Entity
@@ -234,9 +246,7 @@ namespace {ns}.Entity
     {{
 		{propertyLinesText}
     }}
-}}
-
-#pragma warning restore CS8618, IDE1006";
+}}";
             }
             else if (meta is TableMeta tableMeta)
             {
@@ -250,8 +260,6 @@ namespace {ns}.Entity
                 }
                 var attributesText = string.Join("\r\n\t", attributes);
                 code = $@"// {Constants.NO_NOT_EDIT_MESSAGE}
-#pragma warning disable CS8618, IDE1006
-
 {BuildUsings()}
 
 namespace {ns}.Entity
@@ -264,9 +272,7 @@ namespace {ns}.Entity
     {{
 		{propertyLinesText}
     }}
-}}
-
-#pragma warning restore CS8618, IDE1006";
+}}";
             }
             else
                 throw new NotImplementedException();

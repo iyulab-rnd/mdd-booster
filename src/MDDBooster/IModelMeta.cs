@@ -336,7 +336,7 @@ namespace MDDBooster
         public ColumnMeta(string name, string dataType, string lineText)
         {
 #if DEBUG
-            if (name == "OwnerKey")
+            if (name == "Name")
             {
             }
 #endif
@@ -374,6 +374,11 @@ namespace MDDBooster
             else
             {
                 this.Label = name;
+            }
+
+            if (lineText.LeftOr("//").RegexReturn(@" = (.*?)\s+", 1) is string defaultText)
+            {
+                this.Default = defaultText.Trim();
             }
 
             if (lineText.GetBetween($"{DataType}(", ")") is string s)
