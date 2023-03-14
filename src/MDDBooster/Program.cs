@@ -9,7 +9,8 @@ using System.Text.Json;
 var stopwatch = Stopwatch.StartNew();
 
 #if DEBUG
-args = new string[] { @"D:\data\U-Platform\mdd" };
+//args = new string[] { @"D:\data\U-Platform\mdd" };
+args = new string[] { @"D:\data\AR-NewConnect\mdd" };
 #endif
 
 if (args.Length < 1) args = new string[] { Environment.CurrentDirectory };
