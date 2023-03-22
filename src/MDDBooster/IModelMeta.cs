@@ -403,7 +403,7 @@ namespace MDDBooster
 
             if (this.FK)
             {
-                var fkEntityName = this.Name.Left("_");
+                var fkEntityName = GetForeignKeyEntityName();
                 this.Attributes = this.Attributes!.Append($"[FK(typeof({fkEntityName}))]").ToArray();
             }
         }
@@ -496,7 +496,8 @@ namespace MDDBooster
             if (LineText.Contains("FK:"))
             {
                 var s = LineText.GetBetween("FK:", ")");
-                return s.Contains(',') ? s.Left(",") : s;
+                var name =  s.LeftOr(",");
+                return name.LeftOr("_");
             }
             else if (Name.Contains('_'))
                 return Name.Left("_");

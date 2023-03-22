@@ -110,15 +110,8 @@ namespace MDDBooster.Builders
                         if (table.Name != nm) continue;
 
                         var pName = child.Name.ToPlural();
-                        if (c.Name.Contains('_'))
-                        { 
-                            // 아무것도 하지 않음
-                        }
-                        else if (c.Name.EndsWith("Key"))
-                            pName = pName + "By" + c.Name.Left("Key");
-
-                        else
-                            throw new NotImplementedException();
+                        if (c.Name.EndsWith("Key"))
+                            pName = pName + "By" + c.Name.LeftOr("Key");
 
                         var line = $@"public virtual List<{child.Name}>? {pName} {{ get; set; }}";
                         lines.Add(line);
