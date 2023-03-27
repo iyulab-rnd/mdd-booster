@@ -467,7 +467,7 @@ namespace MDDBooster
                 else if (option.Equals("UQ", StringComparison.OrdinalIgnoreCase) || option.Equals("unique", StringComparison.OrdinalIgnoreCase))
                     this.UQ = true;
 
-                else if (option.Equals("UI", StringComparison.OrdinalIgnoreCase) || option.Equals("index", StringComparison.OrdinalIgnoreCase))
+                else if (option.Equals("UI", StringComparison.OrdinalIgnoreCase) || option.Equals("IDX", StringComparison.OrdinalIgnoreCase) || option.Equals("index", StringComparison.OrdinalIgnoreCase))
                     this.UI = true;
             }
         }

@@ -181,7 +181,7 @@ GO";
                 }
 
                 if (defaultValue.Contains("@by"))
-                    defaultValue = "NEWID()";
+                    defaultValue = "'@system'";
 
                 else if (defaultValue.Contains("@now"))
                     defaultValue = "GETDATE()";
