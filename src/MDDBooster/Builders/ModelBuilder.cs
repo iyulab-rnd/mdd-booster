@@ -52,7 +52,7 @@ namespace MDDBooster.Builders
 
             if (c.IsEnumType())
             {
-                var typeName = StringHelper.ToPlural(c.Name);
+                var typeName = c.GetEnumTypeName();
                 var name = c.Name + "Enum";
                 var vName = name.ToCamel();
                 string getter, setter;
@@ -274,6 +274,8 @@ namespace {ns}.Entity
             File.WriteAllText(path, code);
         }
 
+        private static readonly List<string> enumDefinitions = new();
+
         private string? GetEnumSyntax()
         {
             var list = new List<string>();
@@ -282,7 +284,10 @@ namespace {ns}.Entity
                 var options = c.GetEnumOptions();
                 if (options != null)
                 {
-                    var name = c.Name.ToPlural();
+                    var name = c.GetEnumTypeName();
+                    if (enumDefinitions.Contains(name)) continue;
+                    enumDefinitions.Add(name);
+
                     var optionsLinesText = string.Join($",{Environment.NewLine}\t\t", options);
                     var line = $@"public enum {name}
 	{{

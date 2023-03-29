@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 
 namespace MDDBooster
 {
@@ -473,15 +474,29 @@ namespace MDDBooster
         }
 
         internal bool IsEnumType() => DataType.Equals("enum", StringComparison.OrdinalIgnoreCase);
-        internal bool IsEnumKey() => LineText.Contains("enum(key:", StringComparison.OrdinalIgnoreCase);
+        internal bool IsEnumKey() => 
+            LineText.Contains("enum", StringComparison.OrdinalIgnoreCase)
+            && LineText.Contains("key:", StringComparison.OrdinalIgnoreCase);
+
         internal bool IsEnumValue() => !IsEnumKey();
+
+        internal string GetEnumTypeName()
+        {   
+            var name = this.LineText.Right("name:").LeftOr(",").LeftOr(")").Trim();
+            if (string.IsNullOrEmpty(name))
+            {
+                name = this.Name.ToPlural();
+            }
+            return name;
+        }
 
         internal string[]? GetEnumOptions()
         {
             var optionsText = LineText.RegexReturn("enum\\((.*?)\\)", 1);
             if (optionsText != null)
             {
-                var options = optionsText.Split("|").Select(p =>
+                var keyOptions = optionsText.RightOr("enum:").LeftOr(",").LeftOr(")");
+                var options = keyOptions.Split("|").Select(p =>
                 {
                     return p.Contains(':') ? p.Right(":").Trim() : p.Trim();
                 });
