@@ -13,17 +13,20 @@ namespace MDDBooster
         private readonly DatabaseProjectHandler databaseProjectHandler;
         private readonly ModelProjectHandler modelProjectHandler;
         private readonly ServerProjectHandler serverProjectHandler;
+        private readonly WebFrontEndHandler webFrontEndHandler;
 
         public Runner(ILogger<Runner> logger, Settings.Settings settings,
             DatabaseProjectHandler databaseProjectHandler,
             ModelProjectHandler modelProjectHandler,
-            ServerProjectHandler serverProjectHandler)
+            ServerProjectHandler serverProjectHandler,
+            WebFrontEndHandler webFrontEndHandler)
         {
             this.logger = logger;
             this.settings = settings;
             this.databaseProjectHandler = databaseProjectHandler;
             this.modelProjectHandler = modelProjectHandler;
             this.serverProjectHandler = serverProjectHandler;
+            this.webFrontEndHandler = webFrontEndHandler;
         }
 
         internal async Task RunAsync()
@@ -41,6 +44,7 @@ namespace MDDBooster
             await databaseProjectHandler.RunAsync(models);
             await modelProjectHandler.RunAsync(models);
             await serverProjectHandler.RunAsync(models);
+            await webFrontEndHandler.RunAsync(models);
 
             logger.LogInformation("done.");
         }

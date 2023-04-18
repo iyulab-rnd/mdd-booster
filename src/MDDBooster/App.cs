@@ -43,7 +43,7 @@ namespace MDDBooster
 
         internal void WriteFile(string path, string code)
         {
-            logger.LogInformation($"Write File: {Path.GetFileName(path)}");
+            logger.LogInformation("Write File: {path}", Path.GetFileName(path));
 
             var text = code.Replace("\t", "    ");
             File.WriteAllText(path, text);

@@ -30,8 +30,7 @@ using IHost host = Host.CreateDefaultBuilder(args)
             AllowTrailingCommas = true,
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         };
-        var settings = JsonSerializer.Deserialize<Settings>(File.OpenRead(filePath), options);
-        if (settings == null) throw new Exception("cannot read settings");
+        var settings = JsonSerializer.Deserialize<Settings>(File.OpenRead(filePath), options) ?? throw new Exception("cannot read settings");
         settings.BasePath ??= Path.GetDirectoryName(filePath);
 
         Resolver.Settings = settings;
@@ -43,6 +42,7 @@ using IHost host = Host.CreateDefaultBuilder(args)
         services.AddSingleton<ModelProjectHandler>();
         services.AddSingleton<DatabaseProjectHandler>();
         services.AddSingleton<ServerProjectHandler>();
+        services.AddSingleton<WebFrontEndHandler>();
     })
     //.ConfigureLogging(config =>
     //{

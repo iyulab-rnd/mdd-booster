@@ -3,28 +3,6 @@ using System.Text.Json.Serialization;
 
 namespace MDDBooster.Settings
 {
-    //public class Settings
-    //{
-    //    public string? BasePath { get; set; }
-
-    //    [JsonPropertyName("database-project")]
-    //    public string? DatabaseProjectPath { get; set; }
-
-    //    [JsonPropertyName("model-project")]
-    //    public string? ModelProjectPath { get; set; }
-
-    //    [JsonPropertyName("model-ns")]
-    //    public string? ModelNS { get; set; }
-
-    //    [JsonPropertyName("tables-path")]
-    //    public string TablesPath { get; set; } = "tables.mdd";
-
-    //    internal string? GetDatabaseProjectPath() => ResolveDir(DatabaseProjectPath);
-    //    internal string? GetModelProjectPath() => ResolveDir(ModelProjectPath);
-    //    internal string? GetTablesFilePath() => ResolveDir(TablesPath);
-    //}
-
-
     public class Settings
     {
         [JsonConstructor]
@@ -40,6 +18,7 @@ namespace MDDBooster.Settings
         public ModelProject ModelProject { get; set; }
         public DatabaseProject? DatabaseProject { get; set; }
         public ServerProject? ServerProject { get; set; }
+        public WebFrontEnd? WebFrontEnd { get; set; }
 
         #endregion
 
