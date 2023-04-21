@@ -29,8 +29,6 @@
             var methods = string.Join(Environment.NewLine, methodLines);
 
             var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
-#pragma warning disable CS8618, IDE1006
-
 using Microsoft.OData.ModelBuilder;
 using {modelNS}.Entity;
 

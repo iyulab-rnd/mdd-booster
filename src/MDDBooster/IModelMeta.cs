@@ -512,7 +512,7 @@ namespace MDDBooster
             {
                 var s = LineText.GetBetween("FK:", ")");
                 var name =  s.LeftOr(",");
-                return name.LeftOr("_");
+                return name.Contains('.') ? name.Left(".") : name.LeftOr("_");
             }
             else if (Name.Contains('_'))
                 return Name.Left("_");

@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Configuration;
+using System.Data.Common;
 using System.Xml.Linq;
 
 namespace MDDBooster.Builders
@@ -88,7 +89,6 @@ namespace MDDBooster.Builders
                 var c = column;
                 var pName = Utils.GetNameWithoutKey(c.Name);
                 var typeName = c.GetForeignKeyEntityName();
-
                 var line = $@"[ForeignKey(nameof({c.Name}))]
 		public virtual {typeName}? {pName} {{ get; set; }}";
                 lines.Add(line);
@@ -110,9 +110,7 @@ namespace MDDBooster.Builders
                         if (table.Name != nm) continue;
 
                         var pName = child.Name.ToPlural();
-                        if (c.Name.EndsWith("Key"))
-                            pName = pName + "By" + c.Name.LeftOr("Key");
-
+                        pName = pName + "By" + Utils.GetNameWithoutKey(c.Name);
                         var line = $@"public virtual List<{child.Name}>? {pName} {{ get; set; }}";
                         lines.Add(line);
                     }

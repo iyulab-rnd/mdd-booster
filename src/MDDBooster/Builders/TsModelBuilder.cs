@@ -15,6 +15,7 @@ namespace MDDBooster.Builders
         private static readonly Dictionary<string, string> typeMap = new()
         {
             { "Guid", "string" },
+            { "JsonElement", "string" },
             { "bool", "boolean" },
             { "int", "number" }
         };
@@ -24,12 +25,12 @@ namespace MDDBooster.Builders
 #pragma warning restore IDE1006 // 명명 스타일
         private static readonly List<StoreRecord> store = new();
 
+        private Dictionary<string, List<string>> enumTypes = new();
+        private Dictionary<string, List<string>> abstracts = new();
+        private Dictionary<string, List<string>> models = new();
+
         internal async Task BuildAsync(string ns, string modelPath, string tsFile)
         {
-            var enumTypes = new Dictionary<string, List<string>>();
-            var abstracts = new Dictionary<string, List<string>>();
-            var models = new Dictionary<string, List<string>>();
-
             List<string>? list = null;
             foreach (var file in Directory.GetFiles(modelPath))
             {
@@ -102,12 +103,12 @@ namespace MDDBooster.Builders
 
             foreach (var model in abstracts)
             {
-                WriteClass(model, sb, abstracts: true, usingLines);
+                WriteClass(model, sb, isAbstracts: true, usingLines);
             }
 
             foreach (var model in models)
             {
-                WriteClass(model, sb, abstracts: false, usingLines);
+                WriteClass(model, sb, isAbstracts: false, usingLines);
             }
 
             var usingLinesText = string.Join(Environment.NewLine, usingLines);
@@ -123,24 +124,35 @@ namespace MDDBooster.Builders
             store.Add(new StoreRecord(ns, modelPath, tsFile, enumTypes, abstracts, models));
         }
 
-        private static void WriteClass(KeyValuePair<string, List<string>> model, StringBuilder sb, bool abstracts, List<string> usingLines)
+        private void WriteClass(KeyValuePair<string, List<string>> model, StringBuilder sb, bool isAbstracts, List<string> usingLines)
         {
             var className = model.Key.LeftOr(":").Trim();
             var extends = model.Key.Right(":", false, false).Trim();
             if (string.IsNullOrEmpty(extends) != true)
             {
-                var m = FindModel(extends);
-                if (m.Item1 == null)
+                var n = extends.LeftOr("<");
+                var find = this.abstracts.Keys.FirstOrDefault(p => p.LeftOr("<") == n)
+                    ?? this.models.Keys.FirstOrDefault(p => p.LeftOr("<") == n);
+
+                if (find == null)
                 {
-                    extends = null; 
+                    var m = FindModel(extends);
+                    if (m.Item1 == null)
+                    {
+                        extends = null;
+                    }
+                    else
+                    {
+                        extends = $" extends {m.Item1.ns}.{extends}";
+                        TryAddUsingLInes(m, usingLines);
+                    }
                 }
                 else
                 {
-                    extends = $" extends {m.Item1.ns}.{extends}";
-                    TryAddUsingLInes(m, usingLines);
+                    extends = $" extends {extends}";
                 }
             }
-            sb.AppendLine($"  export {(abstracts ? "abstract " : "")}class {className}{extends} {{");
+            sb.AppendLine($"  export {(isAbstracts ? "abstract " : "")}class {className}{extends} {{");
 
             foreach (var line in model.Value)
             {
@@ -160,6 +172,7 @@ namespace MDDBooster.Builders
                     type = type[..^1];
                 }
                 if (type == "Guid") comment += " // Guid";
+                else if (type == "JsonElement") comment += " // JsonElement";
                 var tsType = typeMap.ContainsKey(type) ? typeMap[type] : type;
                 string typeName;
                 if (tsType.StartsWith("IEnumerable"))
