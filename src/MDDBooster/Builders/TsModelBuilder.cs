@@ -178,6 +178,10 @@ namespace MDDBooster.Builders
                 if (tsType.StartsWith("IEnumerable"))
                 {
                     typeName = tsType.GetBetween("<", ">");
+                    if (typeName == "Guid") comment += " // Guid";
+                    else if (typeName == "JsonElement") comment += " // JsonElement";
+                    typeName = typeMap.ContainsKey(typeName) ? typeMap[typeName] : typeName;
+
                     var m = FindModel(typeName);
                     if (m.Item1 != null)
                     {
