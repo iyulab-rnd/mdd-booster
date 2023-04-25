@@ -152,6 +152,10 @@ namespace MDDBooster.Builders
                     extends = $" extends {extends}";
                 }
             }
+            if (className.Contains('<') && className.Contains('>'))
+            {
+                sb.AppendLine($"  // @ts-ignore");
+            }
             sb.AppendLine($"  export {(isAbstracts ? "abstract " : "")}class {className}{extends} {{");
 
             foreach (var line in model.Value)
