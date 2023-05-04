@@ -1,6 +1,7 @@
 ﻿using MDDBooster.Builders;
 using MDDBooster.Handlers;
 using Microsoft.Extensions.Logging;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -14,6 +15,7 @@ namespace MDDBooster
         private readonly ModelProjectHandler modelProjectHandler;
         private readonly ServerProjectHandler serverProjectHandler;
         private readonly WebFrontEndHandler webFrontEndHandler;
+        private readonly string[] extensions = new string[] { ".mdd", ".m3l" };
 
         public Runner(ILogger<Runner> logger, Settings.Settings settings,
             DatabaseProjectHandler databaseProjectHandler,
@@ -31,36 +33,55 @@ namespace MDDBooster
 
         internal async Task RunAsync()
         {
-            var filePath = settings.GetTablesFilePath();
-            if (File.Exists(filePath) != true) throw new Exception($"cannot find tables file");
+            if (settings.BasePath == null) return;
 
             logger.LogInformation("running");
-            
-            var fileText = await File.ReadAllTextAsync(filePath);
-            var models = Parse(fileText);
 
-            Resolver.Models = models;
+            foreach (var filePath in Directory.GetFiles(settings.BasePath))
+            {
+                var ext = Path.GetExtension(filePath).ToLower();
+                if (extensions.Contains(ext) != true) continue;
 
-            await databaseProjectHandler.RunAsync(models);
-            await modelProjectHandler.RunAsync(models);
-            await serverProjectHandler.RunAsync(models);
-            await webFrontEndHandler.RunAsync(models);
+                logger.LogInformation($"run: {Path.GetFileName(filePath)}");
+
+                var fileText = await File.ReadAllTextAsync(filePath);
+                var models = Parse(fileText);
+
+                Resolver.Models = models;
+
+                await databaseProjectHandler.RunAsync(models);
+                await modelProjectHandler.RunAsync(models);
+                await serverProjectHandler.RunAsync(models);
+                await webFrontEndHandler.RunAsync(models);
+            }
 
             logger.LogInformation("done.");
         }
 
         private static IModelMeta[] Parse(string text)
         {
-            var maches = ScopedRegex().Matches(text);
+            var blocks = new List<string>();
+            var sb = new StringBuilder();
+            foreach(var line in text.Split(Environment.NewLine))
+            {
+                if (line.StartsWith("##"))
+                {
+                    if (sb.Length > 0) blocks.Add(sb.ToString());
+
+                    sb.Clear();
+                    sb.AppendLine(line);
+                }
+                else if (line.StartsWith("-"))
+                {
+                    sb.AppendLine(line);
+                }
+            }
+            if (sb.Length > 0) blocks.Add(sb.ToString());
 
             var models = new List<IModelMeta>();
-
-            foreach (var m in maches)
-            {
-                var content = m.ToString();
-                if (string.IsNullOrEmpty(content)) continue;
-                
-                var model = ModelMetaFactory.Create(content);
+            foreach (var block in blocks)
+            {   
+                var model = ModelMetaFactory.Create(block);
                 if (model == null) continue;
 
                 models.Add(model);
@@ -114,8 +135,5 @@ namespace MDDBooster
 
             return models.ToArray();
         }
-
-        [GeneratedRegex("\\#\\s+(.*?)(\\r\\n\\r\\n|$)", RegexOptions.Singleline)]
-        private static partial Regex ScopedRegex();
     }
 }

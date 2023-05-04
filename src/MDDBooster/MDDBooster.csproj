@@ -4,14 +4,14 @@
 		<TargetFramework>net7.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>0.1.21</Version>
+		<Version>0.1.22</Version>
 		<PackageId>MDD-Booster</PackageId>
 		<Authors>side-blue</Authors>
-		<Description>MDD generator dotnet tool</Description>
+		<Description>Code generation tool that supports M3L.</Description>
 		<RepositoryUrl>https://github.com/iyulab-rnd/mdd-booster</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageTags>sideblue</PackageTags>
-
+		
 		<PackAsTool>true</PackAsTool>
 		<ToolCommandName>mdd</ToolCommandName>
 		<PackageOutputPath>./nupkg</PackageOutputPath>

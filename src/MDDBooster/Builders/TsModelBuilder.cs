@@ -38,7 +38,7 @@ namespace MDDBooster.Builders
                 var enumTypesOn = false;
                 foreach (var line in text.Split(Environment.NewLine))
                 {
-                    var trimLine = line.LeftOr("//").Trim();
+                    var trimLine = Functions.GetConentLine(line);
                     if (trimLine.Length < 1) continue;
 
                     if (trimLine.Contains("public abstract class "))
@@ -91,7 +91,7 @@ namespace MDDBooster.Builders
 
                 foreach (var line in enumType.Value)
                 {
-                    var trimLine = line.LeftOr("//").Trim();
+                    var trimLine = Functions.GetConentLine(line);
                     if (trimLine.Length < 1) continue;
 
                     sb.AppendLine($"    {trimLine}");

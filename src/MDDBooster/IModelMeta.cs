@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
@@ -47,14 +48,14 @@ namespace MDDBooster
             Body = body;
             Name = name;
 
-            if (Name.GetBetween("(", ")") is string s)
+            if (headline.GetBetween("(", ")") is string s && s.Length > 0)
             {
-                Label = s;
+                Label = s.Trim();
             }
 
             if (headline.Right(":") is string right && right.Length > 0)
             {
-                var line = right.LeftOr("//");
+                var line = Functions.GetConentLine(right);
                 this.Extensions = line.Split(",")
                     .Select(p => p.Trim())
                     .Where(p => p.StartsWith("@") != true)
@@ -72,20 +73,11 @@ namespace MDDBooster
 
         protected virtual ColumnMeta[] BuildColumns()
         {
-#if DEBUG
-            if (Name == "Plan")
-            {
-
-            }
-#endif
             var list = new List<ColumnMeta>();
 
-            foreach (Match m in Regex.Matches(Body, @"\-\s*(\w+).*?\:\s*(\w+(\?|)).*").Cast<Match>())
+            foreach (Match m in Regex.Matches(Body, @"\-\s+\w+.*").Cast<Match>())
             {
-                var name = m.Groups[1].Value;
-                var dataType = m.Groups[2].Value;
-
-                var c = new ColumnMeta(name, dataType, m.Value);
+                var c = new ColumnMeta(m.Value);
                 list.Add(c);
             }
 
@@ -96,12 +88,9 @@ namespace MDDBooster
         {
             var list = new List<ColumnMeta>();
 
-            foreach (Match m in Regex.Matches(Body, @"\-\s*(\w+).*?\:\s*(\w+(\?|)).*").Cast<Match>())
+            foreach (Match m in Regex.Matches(Body, @"\-\s+\w+.*").Cast<Match>())
             {
-                var name = m.Groups[1].Value;
-                var dataType = m.Groups[2].Value;
-
-                var c = new ColumnMeta(name, dataType, m.Value);
+                var c = new ColumnMeta(m.Value);
                 list.Add(c);
             }
 
@@ -258,11 +247,11 @@ namespace MDDBooster
         public bool? NN { get; private set; } // not null
         public string? Size { get; private set; }
         public string? Default { get; private set; }
-        public string[]? Attributes { get; private set; }
+        public IEnumerable<AttributeMeta> Attributes { get; private set; }
         public string LineText { get; private set; }
         public string Label { get; }
         public string ShortName { get; }
-        public string Description { get; }
+        public string? Description { get; private set; }
 
         public Type GetSystemType()
         {
@@ -334,55 +323,40 @@ namespace MDDBooster
             }
         }
 
-        public ColumnMeta(string name, string dataType, string lineText)
+        public ColumnMeta(string lineText)
         {
-#if DEBUG
-            if (name == "Name")
-            {
-            }
-#endif
-            Name = name;
-            LineText = lineText;
+            var line = Functions.GetConentLine(lineText);
+            var nameText = line.GetBetween("-", ":").Trim();
+            var name = nameText;
 
-            if (dataType.EndsWith("?"))
+            if (name.EndsWith("?"))
             {
                 this.NN = false;
-                DataType = dataType[..(dataType.Length - 1)];
-            }
-            else if (lineText.Contains(name + "?"))
-            {
-                this.NN = false;
-                DataType = dataType;
+                name = name[..^1];
             }
             else
             {
-                this.NN = true;
-                DataType = dataType;
+                this.NN = true; 
             }
 
-            if (lineText.RegexReturn(@"\-\s\w+(?:|\?)\((.*?)\)", 1) is string labelText)
-            {
-                if (labelText.Contains(','))
-                {
-                    this.Label = labelText.Left(",").Trim();
-                    this.ShortName = labelText.Right(",").Trim();
-                }
-                else
-                {
-                    this.Label = labelText.Trim();
-                }
-            }
-            else
-            {
+            this.Label = name.GetBetween("(", ")").Trim();
+            if (string.IsNullOrEmpty(this.Label))
                 this.Label = name;
-            }
+            else
+                name = name.Left("(");
 
-            if (lineText.LeftOr("//").RegexReturn(@" = (.*?)\s+", 1) is string defaultText)
+            var dataType = line.RegexReturn(@"-.*?\:\s*(\w+)", 1) ?? throw new Exception($"Cannot Parse DataType, {lineText}");
+
+            LineText = lineText;
+            Name = name;
+            DataType = dataType;
+
+            if (line.RegexReturn(@"\s*=\s*(.*?)\s+", 1) is string defaultText)
             {
                 this.Default = defaultText.Trim();
             }
 
-            if (lineText.GetBetween($"{DataType}(", ")") is string s)
+            if (line.GetBetween($"{DataType}(", ")") is string s)
             {
                 if (int.TryParse(s, out var size))
                     Size = size.ToString();
@@ -391,72 +365,66 @@ namespace MDDBooster
                     Size = "max";
             }
 
-            if (lineText.Contains("//") && lineText.Right("//") is string description)
-            {
-                this.Description = description.Trim();
-            }
-
             ParseOptions(lineText);
             ParseAttribtes(lineText);
 
             if (this.FK != true && this.Name.StartsWith("_") != true && (this.Name.EndsWith("_id") || this.Name.EndsWith("_key")))
-                FK = true;
-
-            if (this.FK)
             {
-                var fkEntityName = GetForeignKeyEntityName();
-                this.Attributes = this.Attributes!.Append($"[FK(typeof({fkEntityName}))]").ToArray();
+                FK = true;
             }
         }
 
         private void ParseAttribtes(string lineText)
         {
-            var attributes = new List<string>();
-
-            if (this.PK)
+            if (this.Name == "MemberKey")
             {
-                attributes.Add("[Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]");
             }
 
-            if (this.IsNotNull())
-            {
-                attributes.Add("[Required]");
-            }
+            var attributes = new List<AttributeMeta>();
 
-            // Display
-            var displaySb = new StringBuilder();
-            displaySb.Append($"[Display(Name = \"{this.Label}\"");
-            if (this.ShortName != null) displaySb.Append($", ShortName = \"{this.ShortName}\"");
-            if (this.Description != null) displaySb.Append($", Description = \"{this.Description}\"");
-            attributes.Add($"{displaySb})]");
-
-            // MaxLength
-            if (this.GetSize() is string size && size != "max")
-            {
-                attributes.Add($"[MaxLength({size})]");
-            }
-
-            var m = Regex.Matches(lineText, @"\[.*?\]");
+            var m = Regex.Matches(lineText, @"\[(.*?)\]");
             if (m.Any())
             {
-                attributes.AddRange(m.Select(p => p.Value));
+                foreach(var line in m.Select(p => p.Groups[1].Value))
+                {
+                    var items = line.Split(",").Select(p => AttributeMeta.Build(p));
+                    attributes.AddRange(items);
+                }
             }
 
-            this.Attributes = attributes.ToArray();
+            foreach(var attribute in attributes)
+            {
+                if (string.Equals(attribute.Name, "FK", StringComparison.OrdinalIgnoreCase))
+                    this.FK = true;
+
+                else if (string.Equals(attribute.Name, "desc", StringComparison.OrdinalIgnoreCase))
+                    this.Description = attribute.Value;
+            }
+
+            if (this.Description == null && lineText.Contains('#'))
+            {
+                this.Description = lineText.Right("#").LeftOr("//").Trim();
+            }
+
+            this.Attributes = attributes;
         }
 
         internal bool IsNotNull() => this.NN == true;
 
+        private IEnumerable<string> GetAttributeLines(string lineText)
+        {
+            var line = Functions.GetConentLine(lineText);
+            var contents = line.GetBetween("[", "]");
+            return contents.Split(",").Select(p => p.Trim());
+        }
+
         private void ParseOptions(string lineText)
         {
-            //if (Name == "NormalizedEmail") Console.WriteLine(1);
+            var attributeLines = GetAttributeLines(lineText);
 
-            var text = lineText.RightOr(":", include: false, lastTo: false).Trim();
-            text = text.LeftOr("//");
-
-            foreach (Match match in Regex.Matches(text, @"\((.*?)\)"))
+            foreach (var attributeLine in attributeLines)
             {
-                var option = match.Groups[1].Value;
+                var option = attributeLine;
                 if (option.Equals("PK", StringComparison.OrdinalIgnoreCase))
                 {
                     this.PK = true;
@@ -533,6 +501,41 @@ namespace MDDBooster
         }
     }
 
+    public class AttributeMeta
+    {
+        public required string Name { get; set; }
+        public string? Value { get; set; }
+        public required string Line { get; set; }
+
+        internal static AttributeMeta Build(string line)
+        {
+            string name;
+            string? value = null;
+
+            if (line.Contains('('))
+            {
+                name = line.Left("(").Trim();
+                value = line.GetBetween("(", ")").Trim();
+            }
+            else if (line.Contains(':'))
+            {
+                name = line.Left(":").Trim();
+                value = line.Right(":").Trim();
+            }
+            else
+            {
+                name = line;
+            }
+
+            return new AttributeMeta()
+            {
+                Name = name,
+                Value = value,
+                Line = line
+            };
+        }
+    }
+
     public static class ModelMetaFactory
     {
         internal static IModelMeta? Create(string text)
@@ -543,7 +546,7 @@ namespace MDDBooster
             var headline = text[..ndxHeadline];
             var body = text[ndxHeadline..];
 
-            var name = headline.RegexReturn(@"\#\s+(\w+)", 1);
+            var name = headline.RegexReturn(@"\#\#\s+(\w+)", 1);
 
             if (string.IsNullOrEmpty(name)) return null;
 

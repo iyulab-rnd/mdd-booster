@@ -1,5 +1,8 @@
 ﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
+using System;
 using System.Data.Common;
+using System.Text;
 using System.Xml.Linq;
 
 namespace MDDBooster.Builders
@@ -10,7 +13,7 @@ namespace MDDBooster.Builders
         {
         }
 
-        protected Settings.Settings Settings => Resolver.Settings;
+        protected static Settings.Settings Settings => Resolver.Settings;
 
         protected static string[] OutputPropertyLines(ColumnMeta c)
         {
@@ -19,7 +22,8 @@ namespace MDDBooster.Builders
             {
             }
 #endif
-            var attributesText = c.Attributes == null ? null : string.Join($"{Environment.NewLine}\t\t", c.Attributes);
+            var attributeLines = BuildAttributesLines(c);
+            var attributesText = string.Join($"{Environment.NewLine}\t\t", attributeLines);
             if (string.IsNullOrEmpty(attributesText) != true) 
             {
                 attributesText += $"{Environment.NewLine}\t\t";
@@ -79,6 +83,54 @@ namespace MDDBooster.Builders
             }
 
             return lines.ToArray();
+        }
+
+        private static readonly string[] ignoreAttributeName = new string[] { "PK", "Unique", "UQ", "UI", "FK", "Index", "desc" };
+        private static IEnumerable<string> BuildAttributesLines(ColumnMeta c)
+        {
+            if (c.Name == "MemberKey")
+            {
+
+            }
+            if (c.PK) yield return "[Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]";
+
+            if (c.IsNotNull()) yield return "[Required]";
+
+            // Display
+            var displaySb = new StringBuilder();
+            displaySb.Append($"[Display(Name = \"{c.Label}\"");
+            if (c.ShortName != null) displaySb.Append($", ShortName = \"{c.ShortName}\"");
+            if (c.Description != null) displaySb.Append($", Description = \"{c.Description}\"");
+            yield return $"{displaySb})]";
+
+            if (c.FK)
+            {
+                string typeName;
+                var attr = c.Attributes.FirstOrDefault(p => string.Equals(p.Name, "FK", StringComparison.OrdinalIgnoreCase));
+                if (attr != null && attr.Value != null)
+                {
+                    typeName = attr.Value.LeftOr(".");
+                }
+                else
+                {
+                    typeName = c.Name.LeftOr("_");
+                }
+
+                yield return $"[FK(typeof({typeName}))]";
+            }
+
+            // MaxLength
+            if (c.GetSize() is string size && size != "max")
+            {
+                yield return $"[MaxLength({size})]";
+            }
+
+            foreach(var attribute in c.Attributes)
+            {
+                if (ignoreAttributeName.Contains(attribute.Name)) continue;
+
+                yield return $"[{attribute.Line}]";
+            }
         }
 
         public IEnumerable<string> BuildFKLines()

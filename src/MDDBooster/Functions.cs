@@ -21,5 +21,13 @@ namespace MDDBooster
                 .Where(p => p != table
                     && p.Columns.Any(n => n.FK && n.GetForeignKeyEntityName() == table.Name));
         }
+
+        /// <summary>
+        /// 주석과 코멘트를 제외한 라인을 가져옵니다.
+        /// </summary>
+        internal static string GetConentLine(string line)
+        {
+            return line.LeftOr("#").LeftOr("//").Trim();
+        }
     }
 }
