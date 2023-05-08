@@ -36,23 +36,31 @@ namespace MDDBooster
             if (settings.BasePath == null) return;
 
             logger.LogInformation("running");
-
-            foreach (var filePath in Directory.GetFiles(settings.BasePath))
+            try
             {
-                var ext = Path.GetExtension(filePath).ToLower();
-                if (extensions.Contains(ext) != true) continue;
 
-                logger.LogInformation($"run: {Path.GetFileName(filePath)}");
+                foreach (var filePath in Directory.GetFiles(settings.BasePath))
+                {
+                    var ext = Path.GetExtension(filePath).ToLower();
+                    if (extensions.Contains(ext) != true) continue;
 
-                var fileText = await File.ReadAllTextAsync(filePath);
-                var models = Parse(fileText);
+                    logger.LogInformation("run: {filePath}", Path.GetFileName(filePath));
 
-                Resolver.Models = models;
+                    var fileText = await File.ReadAllTextAsync(filePath);
+                    var models = Parse(fileText);
 
-                await databaseProjectHandler.RunAsync(models);
-                await modelProjectHandler.RunAsync(models);
-                await serverProjectHandler.RunAsync(models);
-                await webFrontEndHandler.RunAsync(models);
+                    Resolver.Models = models;
+
+                    await databaseProjectHandler.RunAsync(models);
+                    await modelProjectHandler.RunAsync(models);
+                    await serverProjectHandler.RunAsync(models);
+                    await webFrontEndHandler.RunAsync(models);
+                }
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "{message}", e.Message);
+                throw;
             }
 
             logger.LogInformation("done.");
