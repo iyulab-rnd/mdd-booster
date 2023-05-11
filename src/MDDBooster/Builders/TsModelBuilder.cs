@@ -100,14 +100,21 @@ namespace MDDBooster.Builders
             {
                 sb.AppendLine($"  export enum {enumType.Key} {{");
 
+                var first = true;
                 foreach (var line in enumType.Value)
                 {
-                    var trimLine = Functions.GetConentLine(line);
-                    if (trimLine.Length < 1) continue;
+                    var name = line.Left(",").Trim();
+                    if (string.IsNullOrEmpty(name)) continue;
 
-                    sb.AppendLine($"    {trimLine}");
+                    if (first)
+                        first = false;
+                    else
+                    {
+                        sb.AppendLine(",");
+                    }
+                    sb.Append($"    {name} = '{name}'");
                 }
-
+                sb.AppendLine();
                 sb.AppendLine($"  }}");
                 sb.AppendLine();
             }
