@@ -17,7 +17,10 @@ namespace MDDBooster.Builders
             { "Guid", "string" },
             { "JsonElement", "string" },
             { "bool", "boolean" },
-            { "int", "number" }
+            { "int", "number" },
+            { "float", "number" },
+            { "double", "number" },
+            { "decimal", "number" }
         };
 
 #pragma warning disable IDE1006 // 명명 스타일
@@ -103,7 +106,7 @@ namespace MDDBooster.Builders
                 var first = true;
                 foreach (var line in enumType.Value)
                 {
-                    var name = line.Left(",").Trim();
+                    var name = line.LeftOr(",").Trim();
                     if (string.IsNullOrEmpty(name)) continue;
 
                     if (first)
@@ -201,17 +204,28 @@ namespace MDDBooster.Builders
                 {
                     isNullable = false;
                 }
-                if (type == "Guid") comment += " // Guid";
-                else if (type == "JsonElement") comment += " // JsonElement";
-                var tsType = typeMap.ContainsKey(type) ? typeMap[type] : type;
+                //if (type == "Guid") comment += " // Guid";
+                //else if (type == "JsonElement") comment += " // JsonElement";
+                string tsType;
+                if (typeMap.ContainsKey(type))
+                {
+                    tsType = typeMap[type];
+                    comment += $" // {type}";
+                }
+                else
+                {
+                    tsType = type;
+                }
                 string typeName;
                 if (tsType.StartsWith("IEnumerable"))
                 {
                     typeName = tsType.GetBetween("<", ">");
-                    if (typeName == "Guid") comment += " // Guid";
-                    else if (typeName == "JsonElement") comment += " // JsonElement";
-                    typeName = typeMap.ContainsKey(typeName) ? typeMap[typeName] : typeName;
 
+                    if (typeMap.ContainsKey(typeName))
+                    {
+                        comment += $" // {typeName}";
+                        typeName = typeMap[typeName];
+                    }
                     var m = FindModel(typeName);
                     if (m.Item1 != null)
                     {
