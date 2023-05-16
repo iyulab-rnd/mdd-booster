@@ -150,6 +150,11 @@ namespace MDDBooster.Builders
         private void WriteClass(KeyValuePair<string, List<string>> model, StringBuilder sb, List<string> usingLines, bool isInterface = false, bool isAbstracts = false)
         {
             var className = model.Key.LeftOr(":").Trim();
+            if (className == "PropertyViewColumnTypePayload")
+            {
+
+            }
+
             var extends = model.Key.Right(":", false, false).Trim();
             if (string.IsNullOrEmpty(extends) != true)
             {
@@ -180,9 +185,9 @@ namespace MDDBooster.Builders
                 var comment = string.Empty;
                 var isNullable = true;
                 var t = line.Right("public ").Trim();
-                if (t.StartsWith("required "))
+                if (line.Contains("required "))
                 {
-                    t = line.Right("required ").Trim();
+                    t = t.RightOr("required ").Trim();
                     isNullable = false;
                 }
 
@@ -191,6 +196,10 @@ namespace MDDBooster.Builders
                 {
                     isNullable = true;
                     type = type[..^1];
+                }
+                else if (isNullable)
+                {
+                    isNullable = false;
                 }
                 if (type == "Guid") comment += " // Guid";
                 else if (type == "JsonElement") comment += " // JsonElement";
@@ -225,7 +234,11 @@ namespace MDDBooster.Builders
                 }
                 t = t.Right(" ", false, false);
                 var name = t.Left(" ").ToCamel();
-                var nullable = isNullable ? "?" : "!";
+                var nullable = isNullable
+                    ? "?"
+                    : isInterface
+                    ? ""
+                    : "!";
                 sb.AppendLine($"    {name}{nullable}: {tsType};{comment}");
             }
 
