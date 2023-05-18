@@ -15,7 +15,7 @@ namespace MDDBooster.Builders
         private static readonly Dictionary<string, string> typeMap = new()
         {
             { "Guid", "string" },
-            { "JsonElement", "string" },
+            { "JsonElement", "object" },
             { "bool", "boolean" },
             { "int", "number" },
             { "float", "number" },
