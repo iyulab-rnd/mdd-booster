@@ -171,7 +171,7 @@ namespace MDDBooster.Builders
             return lines;
         }
 
-        protected string BuildUsings()
+        protected static string BuildUsings()
         {
             var defaultUsing = @"using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
