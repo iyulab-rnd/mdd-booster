@@ -8,11 +8,8 @@ namespace MDDBooster.Builders
 {
     public class SqlBuilder : BuilderBase
     {
-        private readonly TableMeta table;
-
         public SqlBuilder(TableMeta m) : base(m)
         {
-            this.table = m;
         }
 
         public void Build(string basePath)
