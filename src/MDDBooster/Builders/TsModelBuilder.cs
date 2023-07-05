@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data.SqlTypes;
-using System.Linq;
-using System.Reflection;
+﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Units;
 using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Xml.Linq;
 
 namespace MDDBooster.Builders
 {
@@ -14,113 +9,59 @@ namespace MDDBooster.Builders
     {
         private static readonly Dictionary<string, string> typeMap = new()
         {
-            { "Guid", "string" },
-            { "JsonElement", "object" },
             { "bool", "boolean" },
             { "int", "number" },
             { "float", "number" },
             { "double", "number" },
-            { "decimal", "number" }
+            { "decimal", "number" },
+            { "Guid", "string" },
+            { "JsonElement", "object" },
+            { "Stream", "Blob" },
         };
 
-#pragma warning disable IDE1006 // 명명 스타일
-        private record StoreRecord(string ns, string modelPath, string tsFile, 
-            Dictionary<string, List<string>> enumTypes,
-            Dictionary<string, List<string>> interfaces,
-            Dictionary<string, List<string>> abstracts, 
-            Dictionary<string, List<string>> models);
-#pragma warning restore IDE1006 // 명명 스타일
+#pragma warning disable IDE1006 // Naming Styles
+        private record StoreRecord(string ns, string modelPath, string tsFile,
+            IEnumerable<EnumUnit> enumTypes,
+            IEnumerable<InterfaceUnit> interfaces,
+            IEnumerable<ClassUnit> abstracts,
+            IEnumerable<ClassUnit> classes);
+#pragma warning restore IDE1006 // Naming Styles
+
         private static readonly List<StoreRecord> store = new();
 
-        private readonly Dictionary<string, List<string>> enumTypes = new();
-        private readonly Dictionary<string, List<string>> interfaces = new();
-        private readonly Dictionary<string, List<string>> abstracts = new();
-        private readonly Dictionary<string, List<string>> models = new();
+        private IEnumerable<InterfaceUnit> interfaces = Enumerable.Empty<InterfaceUnit>();
+        private IEnumerable<ClassUnit> abstracts = Enumerable.Empty<ClassUnit>();
+        private IEnumerable<ClassUnit> classes = Enumerable.Empty<ClassUnit>();
 
         internal async Task BuildAsync(string ns, string modelPath, string tsFile)
         {
-            List<string>? list = null;
+            var handlers = new List<CsCodeUnit>();
             foreach (var file in Directory.GetFiles(modelPath))
             {
-                var text = await File.ReadAllTextAsync(file);
-                var enumTypesOn = false;
-                foreach (var line in text.Split(Environment.NewLine))
-                {
-                    var trimLine = Functions.GetConentLine(line);
-                    if (trimLine.Length < 1) continue;
-
-                    if (trimLine.Contains("public enum "))
-                    {
-                        enumTypesOn = true;
-                        var name = trimLine.Right("public enum ").Trim();
-                        list = new();
-                        enumTypes.Add(name, list);
-                    }
-                    else if (trimLine.Contains("public interface "))
-                    {
-                        var name = trimLine.Right("public interface ").Trim();
-                        list = new();
-                        interfaces.Add(name, list);
-                    }
-                    else if (trimLine.Contains("public abstract class "))
-                    {
-                        var name = trimLine.Right("public abstract class ").Trim();
-                        list = new();
-                        abstracts.Add(name, list);
-                    }
-                    else if (trimLine.Contains("public class "))
-                    {
-                        var name = trimLine.Right("public class ").Trim();
-                        list = new();
-                        models.Add(name, list);
-                    }
-                    else if (trimLine.Contains("public ") && trimLine.Contains("get;") && trimLine.Contains("set;"))
-                    {
-                        list?.Add(trimLine.Trim());
-                    }
-                    else if (enumTypesOn)
-                    {
-                        if (trimLine.StartsWith("{"))
-                        {
-                            // skip
-                        }
-                        else if (trimLine.StartsWith("}"))
-                        {
-                            enumTypesOn = false;
-                        }
-                        else
-                        {
-                            list?.Add(trimLine);
-                        }
-                    }
-                }
+                var code = await File.ReadAllTextAsync(file);
+                var csHandler = new CsCodeUnit(code);
+                handlers.Add(csHandler);
             }
 
             var usingLines = new List<string>();
             var sb = new StringBuilder();
 
+            var enumTypes = handlers.SelectMany(handler => handler.EnumUnits);
+
             foreach (var enumType in enumTypes)
             {
-                sb.AppendLine($"  export enum {enumType.Key} {{");
+                sb.AppendLine($"  export enum {enumType.Name} {{");
 
-                var first = true;
-                foreach (var line in enumType.Value)
-                {
-                    var name = line.LeftOr(",").Trim();
-                    if (string.IsNullOrEmpty(name)) continue;
-
-                    if (first)
-                        first = false;
-                    else
-                    {
-                        sb.AppendLine(",");
-                    }
-                    sb.Append($"    {name} = '{name}'");
-                }
+                var lines = enumType.GetValueNames().Select(valueName => $"    {valueName} = '{valueName}'");
+                sb.Append(string.Join("," + Environment.NewLine, lines));
                 sb.AppendLine();
                 sb.AppendLine($"  }}");
                 sb.AppendLine();
             }
+
+            this.interfaces = handlers.SelectMany(handler => handler.InterfaceUnits);
+            this.abstracts = handlers.SelectMany(handler => handler.AbstractUnits);
+            this.classes = handlers.SelectMany(handler => handler.ClassUnits);
 
             foreach (var model in interfaces)
             {
@@ -132,7 +73,7 @@ namespace MDDBooster.Builders
                 WriteClass(model, sb, usingLines, isAbstracts: true);
             }
 
-            foreach (var model in models)
+            foreach (var model in classes)
             {
                 WriteClass(model, sb, usingLines);
             }
@@ -147,27 +88,24 @@ namespace MDDBooster.Builders
 {sb}}}";
             await File.WriteAllTextAsync(tsFile, output);
 
-            store.Add(new StoreRecord(ns, modelPath, tsFile, enumTypes, interfaces, abstracts, models));
+            store.Add(new StoreRecord(ns, modelPath, tsFile, enumTypes, interfaces, abstracts, classes));
         }
 
-        private void WriteClass(KeyValuePair<string, List<string>> model, StringBuilder sb, List<string> usingLines, bool isInterface = false, bool isAbstracts = false)
+        private void WriteClass(IClassTypeUnit model, StringBuilder sb, List<string> usingLines, bool isInterface = false, bool isAbstracts = false)
         {
-            var className = model.Key.LeftOr(":").Trim();
-            if (className == "PropertyViewColumnTypePayload")
-            {
+            var className = model.Name;
 
-            }
-
-            var extends = model.Key.Right(":", false, false).Trim();
+            var extends = string.Join(",", model.Inherits);
             if (string.IsNullOrEmpty(extends) != true)
             {
                 var extendsLine = ResolveTypeNames(extends, usingLines);
                 extends = extendsLine.Length > 0 ? $" extends {extendsLine}" : null;
             }
 
-            if (className.Contains('<') && className.Contains('>'))
+            if (model is ClassUnit classUnit && classUnit.IsGeneric)
             {
                 sb.AppendLine($"  // @ts-ignore");
+                className += $"<{string.Join(",", classUnit.GenericTypeNames)}>";
             }
 
             if (isInterface)
@@ -183,29 +121,25 @@ namespace MDDBooster.Builders
                 sb.AppendLine($"  export class {className}{extends} {{");
             }
 
-            foreach (var line in model.Value)
+            foreach (var property in model.Properties)
             {
                 var comment = string.Empty;
-                var isNullable = true;
-                var t = line.Right("public ").Trim();
-                if (line.Contains("required "))
+                var isNullable = false;
+                var type = property.Type;
+
+                if (property.IsRequired) // required
                 {
-                    t = t.RightOr("required ").Trim();
                     isNullable = false;
                 }
-
-                var type = t.Left(" ");
-                if (type.EndsWith("?"))
+                if (property.IsNullable) // ?
                 {
                     isNullable = true;
-                    type = type[..^1];
                 }
                 else if (isNullable)
                 {
                     isNullable = false;
                 }
-                //if (type == "Guid") comment += " // Guid";
-                //else if (type == "JsonElement") comment += " // JsonElement";
+                
                 string tsType;
                 if (typeMap.ContainsKey(type))
                 {
@@ -246,8 +180,8 @@ namespace MDDBooster.Builders
                         TryAddUsingLInes(m, usingLines);
                     }
                 }
-                t = t.Right(" ", false, false);
-                var name = t.Left(" ").ToCamel();
+
+                var name = property.Name.ToCamel();
                 var nullable = isNullable
                     ? "?"
                     : isInterface
@@ -255,6 +189,9 @@ namespace MDDBooster.Builders
                     : "!";
                 sb.AppendLine($"    {name}{nullable}: {tsType};{comment}");
             }
+
+            // replace
+            sb.Replace("IEnumerable<", "Array<");
 
             sb.AppendLine($"  }}");
             sb.AppendLine();
@@ -265,64 +202,58 @@ namespace MDDBooster.Builders
             return input.Split("<").Select(p => p.Replace(">", string.Empty));
         }
 
-        private string ResolveTypeNames(string nameText, List<string> usingLines)
+        private string ResolveTypeNames(string typeLine, List<string> usingLines)
         {
-            var sb = new StringBuilder();
-
-            var names = GetTypeHierarchy(nameText).ToArray();
-            var n = 0;
-            for (int i = 0; i < names.Length; i++)
+            if (typeLine.Contains('<')) // is generic
             {
-                bool isGeneric = i > 0;
-                var name = names[i];
+                var baseName = typeLine.Left("<").Trim();
+                var parameters = typeLine.GetBetweenBlock("<", ">").Split(",").Select(p => p.Trim());
 
-                var find = this.interfaces.Keys.FirstOrDefault(p => p.LeftOr("<").LeftOr(" ") == name)
-                    ?? this.abstracts.Keys.FirstOrDefault(p => p.LeftOr("<").LeftOr(" ") == name)
-                    ?? this.models.Keys.FirstOrDefault(p => p.LeftOr("<").LeftOr(" ") == name);
+                var sb = new StringBuilder();
+                var resolved = ResolveTypeNames(baseName, usingLines);
+                if (string.IsNullOrEmpty(resolved) != true) sb.Append(resolved);
 
-
-                string s;
-                if (find == null)
+                var list = new List<string>();
+                foreach (var parameter in parameters)
                 {
-                    // 예약어
-                    if (name == "IEnumerable")
-                        name = "Array";
-
-                    else if (name == "object")
-                        name = "Object";
-
-                    else
-                    {
-                        // 외부에서 찾음
-                        var m = FindModel(name);
-                        if (m.Item1 == null)
-                        {
-                            // 찾을수 없음.. 생략
-                            continue;
-                        }
-                        else
-                        {
-                            name = $"{m.Item1.ns}.{name}";
-                            TryAddUsingLInes(m, usingLines);
-                        }
-                    }
+                    resolved = ResolveTypeNames(parameter, usingLines);
+                    if (string.IsNullOrEmpty(resolved) != true) list.Add(resolved);
+                }
+                if (list.Count > 0)
+                {
+                    sb.Append('<');
+                    sb.Append(string.Join(",", list));
+                    sb.Append('>');
                 }
 
-                if (isGeneric)
-                    s = $"<{name}";
-                else
-                    s = name;
-
-                sb.Append(s);
-                n++;
+                return sb.ToString();
             }
 
-            if (n > 1)
+            var typeName = typeLine.Trim();
+            if (typeName.Equals("IEnumerable")) return "Array";
+
+            if (this.interfaces.Any(p => p.Name == typeName)
+                || this.abstracts.Any(p => p.Name == typeName)
+                || this.classes.Any(p => p.Name == typeName))
             {
-                sb.Append('>', n - 1);
+                // 같은 파일에 있어서 using을 추가할 필요가 없습니다.
+                // 아무것도 하지 않음
+            }
+            else
+            {
+                var m = FindModel(typeName);
+                if (m.Item1 == null)
+                {
+                    return string.Empty;
+                }
+                else
+                {
+                    typeName = $"{m.Item1.ns}.{typeName}";
+                    TryAddUsingLInes(m, usingLines);
+                }
             }
 
-            return sb.ToString();
+            return typeName;
         }
 
         private static void TryAddUsingLInes((StoreRecord, List<string>) m, List<string> usingLines)
@@ -338,17 +269,17 @@ namespace MDDBooster.Builders
         {
             foreach(var s in store)
             {
-                if (s.enumTypes.ContainsKey(name))
-                    return (s, s.enumTypes[name]);
+                if (s.enumTypes.FirstOrDefault(p => p.Name == name) is EnumUnit @enum)
+                    return (s, @enum.GetValueNames().ToList());
 
-                else if (s.interfaces.ContainsKey(name))
-                    return (s, s.interfaces[name]);
+                else if (s.interfaces.FirstOrDefault(p => p.Name == name) is InterfaceUnit @interface)
+                    return (s, @interface.GetPropertyNames().ToList());
 
-                else if (s.abstracts.ContainsKey(name))
-                    return (s, s.abstracts[name]);
+                else if (s.abstracts.FirstOrDefault(p => p.Name == name) is ClassUnit @abstract)
+                    return (s, @abstract.GetPropertyNames().ToList());
 
-                else if (s.models.ContainsKey(name))
-                    return (s, s.models[name]);
+                else if (s.classes.FirstOrDefault(p => p.Name == name) is ClassUnit @class)
+                    return (s, @class.GetPropertyNames().ToList());
             }
             return default;
         }

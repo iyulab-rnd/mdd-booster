@@ -60,6 +60,10 @@ namespace MDDBooster
                 return input[(n + search.Length)..];
         }
 
+        /// <summary>
+        /// begin, end 사이의 값을 가져옵니다.
+        /// begin이후 가장 빠른 end 를 찾습니다.
+        /// </summary>
         public static string GetBetween(this string input, string begin, string end, bool last = false)
         {
             var first = last
@@ -74,6 +78,49 @@ namespace MDDBooster
             var r = e > 0 ? input[s..e] : input[s..];
             return r;
         }
+
+        /// <summary>
+        /// begin, end 사이의 값을 가져옵니다.
+        /// begin, end의 쌍을 고려합니다. 중첩된 괄호가 있을 때 가장 바깥쪽 괄호를 찾습니다.
+        /// </summary>
+        public static string GetBetweenBlock(this string input, string begin, string end)
+        {
+            var stack = new Stack<int>();
+            int startIndex = -1;
+            int endIndex = -1;
+
+            for (int i = 0; i < input.Length; i++)
+            {
+                var subString = input.Substring(i);
+                if (subString.StartsWith(begin))
+                {
+                    stack.Push(i);
+                }
+                else if (subString.StartsWith(end))
+                {
+                    if (stack.Count == 0)
+                    {
+                        return null; // Unbalanced blocks
+                    }
+
+                    startIndex = stack.Pop();
+                    endIndex = i;
+                }
+
+                if (stack.Count == 0 && startIndex != -1 && endIndex != -1)
+                {
+                    break; // We've found our outermost block
+                }
+            }
+
+            if (startIndex == -1 || endIndex == -1)
+            {
+                return null; // No valid block found
+            }
+
+            return input.Substring(startIndex + begin.Length, endIndex - startIndex - begin.Length);
+        }
+
 
         public static string ToPascal(this string value)
         {
