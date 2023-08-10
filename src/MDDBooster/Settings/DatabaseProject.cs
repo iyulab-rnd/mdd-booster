@@ -2,6 +2,12 @@
 
 namespace MDDBooster.Settings
 {
+    public enum DatabaseKinds
+    {
+        MSSQL,
+        PostgreSQL
+    }
+
     public class DatabaseProject
     {
         [JsonConstructor]
@@ -10,6 +16,7 @@ namespace MDDBooster.Settings
             Path = path;
         }
 
+        public DatabaseKinds Kind { get; set; }
         public string Path { get; set; }
     }
 }

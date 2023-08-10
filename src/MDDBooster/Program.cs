@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Diagnostics;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 var stopwatch = Stopwatch.StartNew();
 
@@ -30,7 +31,9 @@ using IHost host = Host.CreateDefaultBuilder(args)
         {
             AllowTrailingCommas = true,
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            PropertyNameCaseInsensitive = true,
         };
+        options.Converters.Add(new JsonStringEnumConverter());
         var settings = JsonSerializer.Deserialize<Settings>(File.OpenRead(filePath), options) ?? throw new Exception("cannot read settings");
         settings.BasePath ??= Path.GetDirectoryName(filePath);
 

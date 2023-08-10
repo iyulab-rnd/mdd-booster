@@ -38,8 +38,18 @@ namespace MDDBooster.Handlers
             {
                 logger.LogInformation($"Build SQL: {m.Name}");
 
-                var builder = new SqlBuilder(m);
-                builder.Build(tablesPath);
+                if (settings.DatabaseProject.Kind == Settings.DatabaseKinds.MSSQL)
+                {
+                    var builder = new SqlBuilder(m);
+                    builder.Build(tablesPath);
+                }
+                else if (settings.DatabaseProject.Kind == Settings.DatabaseKinds.PostgreSQL)
+                {
+                    var builder = new PostgreSqlBuilder(m);
+                    builder.Build(tablesPath);
+                }
+                else
+                    throw new NotImplementedException();
 
                 //var triggerBuilder = new SqlTriggerBuilder(m);
                 //triggerBuilder.Build(triggersPath);
