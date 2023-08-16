@@ -17,6 +17,7 @@ namespace MDDBooster.Builders
             { "Guid", "string" },
             { "JsonElement", "object" },
             { "Stream", "Blob" },
+            { "byte[]", "Blob" },
         };
 
 #pragma warning disable IDE1006 // Naming Styles
