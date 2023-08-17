@@ -22,7 +22,7 @@ namespace MDDBooster.Builders
         {
             var tables = models.OfType<TableMeta>();
             var dbsetLines = tables.Select(p => $"\t\tpublic DbSet<{p.Name}> {p.Name.ToPlural()} {{ get; set; }}");
-            var dbSet = string.Join(Environment.NewLine, dbsetLines);
+            var dbSet = string.Join(Constants.NewLine, dbsetLines);
 
             var onModelCreatingText = GetOnModelCreatingText(tables);
 

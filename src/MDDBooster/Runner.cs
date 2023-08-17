@@ -70,7 +70,7 @@ namespace MDDBooster
         {
             var blocks = new List<string>();
             var sb = new StringBuilder();
-            foreach(var line in text.Split(Environment.NewLine))
+            foreach(var line in text.Split(Constants.NewLine))
             {
                 if (line.StartsWith("##"))
                 {

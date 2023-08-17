@@ -24,23 +24,23 @@ namespace MDDBooster.Builders
             var columnLinesText = string.Join(",\r\n\t", columnLines);
 
             var indexLines = FullColumns.Where(p => p.UI).Select(p => OutputIndexLine(p));
-            var indexLinesText = string.Join(Environment.NewLine, indexLines);
+            var indexLinesText = string.Join(Constants.NewLine, indexLines);
 
             var fkLines = FullColumns.Where(p => p.FK).Select(p => OutputFKLine(p));
-            var fkLinesText = string.Join(Environment.NewLine, fkLines);
+            var fkLinesText = string.Join(Constants.NewLine, fkLines);
 
             var uniqueLines = GetUniqueLines(out var nullableUniqueLines);
             var uniqueLinesText = string.Empty;
             if (uniqueLines != null && uniqueLines.Any())
             {
-                var line = string.Join($",{Environment.NewLine}\t", uniqueLines);
-                uniqueLinesText = $",{Environment.NewLine}\t{line}";
+                var line = string.Join($",{Constants.NewLine}\t", uniqueLines);
+                uniqueLinesText = $",{Constants.NewLine}\t{line}";
             }
             var nullableUniqueLinesText = string.Empty;
             if (nullableUniqueLines != null && nullableUniqueLines.Any())
             {
-                var line = string.Join($"{Environment.NewLine}", nullableUniqueLines.Select(p => $"{p}{Environment.NewLine}GO"));
-                nullableUniqueLinesText = $"{Environment.NewLine}{line}";
+                var line = string.Join($"{Constants.NewLine}", nullableUniqueLines.Select(p => $"{p}{Constants.NewLine}GO"));
+                nullableUniqueLinesText = $"{Constants.NewLine}{line}";
             }
 
             var code = $@"-- # {Constants.NO_NOT_EDIT_MESSAGE}
@@ -49,7 +49,7 @@ CREATE TABLE [dbo].[{Name}]
     {columnLinesText}{uniqueLinesText}
 )
 GO{nullableUniqueLinesText}";
-            var text = string.Join(Environment.NewLine, code, indexLinesText, fkLinesText);
+            var text = string.Join(Constants.NewLine, code, indexLinesText, fkLinesText);
 
             text = text.Replace("\t", "    ");
             var path = Path.Combine(basePath, $"{Name}.sql");

@@ -124,7 +124,7 @@ namespace {modelNS}.Gql
             var tableNames = models.OfType<TableMeta>().Select(p => p.Name);
 
             var lines = tableNames.Select(name => $"Register(provider.GetService<{name}Query>()!);");
-            var linesText = string.Join($"{Environment.NewLine}\t\t\t", lines);
+            var linesText = string.Join($"{Constants.NewLine}\t\t\t", lines);
 
             var ns = settings.ServerProject!.Namespace;
             var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
@@ -339,7 +339,7 @@ namespace {serverNS}.Gql.Schemas
                 fieldLines.Add(line);
             }
 
-            var fieldLinesText = string.Join($"{Environment.NewLine}\t\t\t", fieldLines);
+            var fieldLinesText = string.Join($"{Constants.NewLine}\t\t\t", fieldLines);
 
             var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
 using GraphQL.Types;

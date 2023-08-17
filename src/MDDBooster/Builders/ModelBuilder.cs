@@ -23,10 +23,10 @@ namespace MDDBooster.Builders
             }
 #endif
             var attributeLines = BuildAttributesLines(c);
-            var attributesText = string.Join($"{Environment.NewLine}\t\t", attributeLines);
+            var attributesText = string.Join($"{Constants.NewLine}\t\t", attributeLines);
             if (string.IsNullOrEmpty(attributesText) != true) 
             {
-                attributesText += $"{Environment.NewLine}\t\t";
+                attributesText += $"{Constants.NewLine}\t\t";
             }
 
             var sysType = c.GetSystemType();
@@ -181,7 +181,7 @@ using System.Text.Json.Serialization;";
             if (Settings.ModelProject.Usings == null) return defaultUsing;
 
             var usings = Settings.ModelProject.Usings.Select(p => $"using {p};");
-            var text = Environment.NewLine + string.Join(Environment.NewLine, usings);
+            var text = Constants.NewLine + string.Join(Constants.NewLine, usings);
             return defaultUsing + text;
         }
     }
@@ -195,7 +195,7 @@ using System.Text.Json.Serialization;";
         public void Build(string ns, string basePath)
         {
             var propertyLines = Columns.SelectMany(p => OutputPropertyLines(p));
-            var propertyLinesText = string.Join($"{Environment.NewLine}{Environment.NewLine}\t\t", propertyLines);
+            var propertyLinesText = string.Join($"{Constants.NewLine}{Constants.NewLine}\t\t", propertyLines);
 
             var className = Name;
             var baseText = meta.Interfaces == null || meta.Interfaces.Length == 0
@@ -244,7 +244,7 @@ namespace {ns}.Entity
                 .SelectMany(p => OutputPropertyLines(p))
                 .Concat(this.BuildFKLines())
                 .Concat(this.BuildChildrenLines());
-            var propertyLinesText = string.Join($"{Environment.NewLine}{Environment.NewLine}\t\t", propertyLines);
+            var propertyLinesText = string.Join($"{Constants.NewLine}{Constants.NewLine}\t\t", propertyLines);
 
             var summary = Name;
             var className = Name;
@@ -338,7 +338,7 @@ namespace {ns}.Entity
                     if (enumDefinitions.Contains(name)) continue;
                     enumDefinitions.Add(name);
 
-                    var optionsLinesText = string.Join($",{Environment.NewLine}\t\t", options);
+                    var optionsLinesText = string.Join($",{Constants.NewLine}\t\t", options);
                     var line = $@"public enum {name}
 	{{
 		{optionsLinesText}
@@ -348,7 +348,7 @@ namespace {ns}.Entity
             }
 
             if (list.Any())
-                return $"{Environment.NewLine}\t{string.Join(Environment.NewLine + Environment.NewLine, list)}{Environment.NewLine}";
+                return $"{Constants.NewLine}\t{string.Join(Constants.NewLine + Constants.NewLine, list)}{Constants.NewLine}";
 
             else
                 return null;

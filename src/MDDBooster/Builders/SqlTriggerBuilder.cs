@@ -46,7 +46,7 @@ namespace MDDBooster.Builders
             }
             if (lines.Any() != true) return;
 
-            var linesText = string.Join(Environment.NewLine, lines);
+            var linesText = string.Join(Constants.NewLine, lines);
 
             var code = $@"-- # {Constants.NO_NOT_EDIT_MESSAGE}
 CREATE TRIGGER {Name}Trigger

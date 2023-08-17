@@ -14,7 +14,7 @@
             var tables = models.OfType<TableMeta>();
 
             var addfuncLines = tables.Select(p => $"\t\t\tesBuilder.Add{p.Name}(builder);");
-            var addfunc = string.Join(Environment.NewLine, addfuncLines);
+            var addfunc = string.Join(Constants.NewLine, addfuncLines);
 
             var methodLines = tables.Select(p =>
             {
@@ -26,7 +26,7 @@
         }}";
                 return r;
             });
-            var methods = string.Join(Environment.NewLine, methodLines);
+            var methods = string.Join(Constants.NewLine, methodLines);
 
             var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
 using Microsoft.OData.ModelBuilder;

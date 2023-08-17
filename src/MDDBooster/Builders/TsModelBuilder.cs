@@ -54,7 +54,7 @@ namespace MDDBooster.Builders
                 sb.AppendLine($"  export enum {enumType.Name} {{");
 
                 var lines = enumType.GetValueNames().Select(valueName => $"    {valueName} = '{valueName}'");
-                sb.Append(string.Join("," + Environment.NewLine, lines));
+                sb.Append(string.Join("," + Constants.NewLine, lines));
                 sb.AppendLine();
                 sb.AppendLine($"  }}");
                 sb.AppendLine();
@@ -79,10 +79,10 @@ namespace MDDBooster.Builders
                 WriteClass(model, sb, usingLines);
             }
 
-            var usingLinesText = string.Join(Environment.NewLine, usingLines);
+            var usingLinesText = string.Join(Constants.NewLine, usingLines);
             if (usingLinesText.Length > 0)
             {
-                usingLinesText += Environment.NewLine + Environment.NewLine;
+                usingLinesText += Constants.NewLine + Constants.NewLine;
             }
             var output = $@"{usingLinesText}export namespace {ns} {{
 
