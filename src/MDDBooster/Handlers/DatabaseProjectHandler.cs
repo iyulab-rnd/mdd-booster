@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -26,7 +27,18 @@ namespace MDDBooster.Handlers
             var projPath = Utils.ResolvePath(settings.BasePath, settings.DatabaseProject.Path);
             if (projPath == null) return;
 
-            var tablesPath = Path.Combine(projPath, "dbo", "Tables_");
+            var tablesPath = Path.Combine(projPath);
+            if (settings.DatabaseProject.Kind == Settings.DatabaseKinds.MSSQL)
+            {
+                tablesPath = Path.Combine(tablesPath, "dbo", "Tables_");
+            }
+            else if (settings.DatabaseProject.Kind == Settings.DatabaseKinds.PostgreSQL)
+            {
+                tablesPath = Path.Combine(tablesPath, $"{settings.DatabaseProject.Kind}", "Tables_");
+            }
+            else
+                throw new NotImplementedException();
+
             if (Directory.Exists(tablesPath)) Directory.Delete(tablesPath, true);
             Directory.CreateDirectory(tablesPath);
 
