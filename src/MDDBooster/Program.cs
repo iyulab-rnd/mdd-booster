@@ -10,8 +10,8 @@ using System.Text.Json.Serialization;
 var stopwatch = Stopwatch.StartNew();
 
 #if DEBUG
-//args = new string[] { @"D:\data\Chatglish\mdd" };
-args = new string[] { @"D:\data\U-Platform\mdd" };
+args = new string[] { @"D:\data\PlotPals\mdd" };
+//args = new string[] { @"D:\data\U-Platform\mdd" };
 //args = new string[] { @"D:\data\AR-NewConnect\mdd" };
 #endif
 
