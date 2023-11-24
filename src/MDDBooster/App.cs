@@ -1,13 +1,9 @@
-﻿using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
-using System.Reflection;
+﻿using Microsoft.Extensions.Logging;
 
 namespace MDDBooster
 {
-    internal class App
+    public class App
     {
-        public static App Current { get; private set; }
-
         private readonly ILogger<App> logger;
         private readonly Runner runner;
 
@@ -16,10 +12,10 @@ namespace MDDBooster
             this.logger = logger;
             this.runner = runner;
 
-            App.Current = this;
+            AppFunctions.Logger = logger;
         }
 
-        internal async Task RunAsync()
+        public async Task RunAsync()
         {
             logger.LogInformation("running...");
 
@@ -39,14 +35,6 @@ namespace MDDBooster
                 await Task.Delay(TimeSpan.FromSeconds(1));
             }
 #endif
-        }
-
-        internal void WriteFile(string path, string code)
-        {
-            logger.LogInformation("Write File: {path}", Path.GetFileName(path));
-
-            var text = code.Replace("\t", "    ");
-            File.WriteAllText(path, text);
         }
     }
 }

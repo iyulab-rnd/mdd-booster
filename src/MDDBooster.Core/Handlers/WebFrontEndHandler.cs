@@ -5,16 +5,10 @@ using System.Reflection;
 
 namespace MDDBooster.Handlers
 {
-    internal class WebFrontEndHandler
+    public class WebFrontEndHandler(ILogger<WebFrontEndHandler> logger, Settings.Settings settings)
     {
-        private readonly ILogger<WebFrontEndHandler> logger;
-        private readonly Settings.Settings settings;
-
-        public WebFrontEndHandler(ILogger<WebFrontEndHandler> logger, Settings.Settings settings)
-        {
-            this.logger = logger;
-            this.settings = settings;
-        }
+        private readonly ILogger<WebFrontEndHandler> logger = logger;
+        private readonly Settings.Settings settings = settings;
 
         internal async Task RunAsync(IModelMeta[] _)
         {

@@ -9,16 +9,10 @@ using System.Threading.Tasks;
 
 namespace MDDBooster.Handlers
 {
-    internal class DatabaseProjectHandler
+    public class DatabaseProjectHandler(ILogger<DatabaseProjectHandler> logger, Settings.Settings settings)
     {
-        private readonly ILogger<DatabaseProjectHandler> logger;
-        private readonly Settings.Settings settings;
-
-        public DatabaseProjectHandler(ILogger<DatabaseProjectHandler> logger, Settings.Settings settings)
-        {
-            this.logger = logger;
-            this.settings = settings;
-        }
+        private readonly ILogger<DatabaseProjectHandler> logger = logger;
+        private readonly Settings.Settings settings = settings;
 
         internal async Task RunAsync(IModelMeta[] models)
         {
@@ -48,7 +42,7 @@ namespace MDDBooster.Handlers
 
             foreach (var m in models.OfType<TableMeta>())
             {
-                logger.LogInformation($"Build SQL: {m.Name}");
+                logger.LogInformation("Build SQL: {name}", m.Name);
 
                 if (settings.DatabaseProject.Kind == Settings.DatabaseKinds.MSSQL)
                 {

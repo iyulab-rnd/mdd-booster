@@ -100,7 +100,7 @@ namespace {modelNS}.Gql
 #pragma warning restore CS8618, IDE1006";
                 var fileName = $"{table.Name}SearchRequest.cs";
                 var path = Path.Combine(basePath, fileName);
-                App.Current.WriteFile(path, code);
+                AppFunctions.WriteFile(path, code);
             }
         }
 
@@ -152,7 +152,7 @@ namespace {ns}.Gql
 }}";
             var fileName = $"AppGqlQuery.cs";
             var path = Path.Combine(basePath, fileName);
-            App.Current.WriteFile(path, code);
+            AppFunctions.WriteFile(path, code);
         }
 
         private void BuildAppGqlSchema(string basePath)
@@ -180,7 +180,7 @@ namespace {ns}.Gql
 }}";
             var fileName = $"AppGqlSchema.cs";
             var path = Path.Combine(basePath, fileName);
-            App.Current.WriteFile(path, code);
+            AppFunctions.WriteFile(path, code);
         }
 
         private void BuildAppGqlValidationRule(string basePath)
@@ -197,7 +197,7 @@ namespace {ns}.Gql
 }}";
             var fileName = $"AppGqlValidationRule.cs";
             var path = Path.Combine(basePath, fileName);
-            App.Current.WriteFile(path, code);
+            AppFunctions.WriteFile(path, code);
         }
 
         private void BuildSchemaFiles(string basePath, TableMeta table)
@@ -289,7 +289,7 @@ namespace {serverNS}.Gql.Schemas
 }}";
             var fileName = $"{table.Name}FieldType.cs";
             var path = Path.Combine(basePath, fileName);
-            App.Current.WriteFile(path, code);
+            AppFunctions.WriteFile(path, code);
         }
 
         private static bool TryGetGraphType(ColumnMeta column, out string graphType)
@@ -359,7 +359,7 @@ namespace {serverNS}.Gql.Schemas
 }}";
             var fileName = $"{table.Name}GraphType.cs";
             var path = Path.Combine(basePath, fileName);
-            App.Current.WriteFile(path, code);
+            AppFunctions.WriteFile(path, code);
         }
 
         private void BuildSchemaQuery(string basePath, TableMeta table)
@@ -386,7 +386,7 @@ namespace {serverNS}.Gql.Schemas
 }}";
             var fileName = $"{table.Name}Query.cs";
             var path = Path.Combine(basePath, fileName);
-            App.Current.WriteFile(path, code);
+            AppFunctions.WriteFile(path, code);
         }
 
         private void BuildSchemaRepository(string basePath, TableMeta table)
@@ -505,7 +505,7 @@ namespace {serverNS}.Gql.Schemas
 }}";
             var fileName = $"{table.Name}Repository.cs";
             var path = Path.Combine(basePath, fileName);
-            App.Current.WriteFile(path, code);
+            AppFunctions.WriteFile(path, code);
         }
     }
 }

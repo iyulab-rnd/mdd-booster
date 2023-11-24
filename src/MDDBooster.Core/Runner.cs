@@ -1,37 +1,24 @@
-﻿using MDDBooster.Builders;
-using MDDBooster.Handlers;
+﻿using MDDBooster.Handlers;
 using Microsoft.Extensions.Logging;
 using System.Text;
-using System.Text.Json;
-using System.Text.RegularExpressions;
 
 namespace MDDBooster
 {
-    internal partial class Runner
+    public partial class Runner(ILogger<Runner> logger, Settings.Settings settings,
+        DatabaseProjectHandler databaseProjectHandler,
+        ModelProjectHandler modelProjectHandler,
+        ServerProjectHandler serverProjectHandler,
+        WebFrontEndHandler webFrontEndHandler)
     {
-        private readonly ILogger<Runner> logger;
-        private readonly Settings.Settings settings;
-        private readonly DatabaseProjectHandler databaseProjectHandler;
-        private readonly ModelProjectHandler modelProjectHandler;
-        private readonly ServerProjectHandler serverProjectHandler;
-        private readonly WebFrontEndHandler webFrontEndHandler;
-        private readonly string[] extensions = new string[] { ".mdd", ".m3l" };
+        private readonly ILogger<Runner> logger = logger;
+        private readonly Settings.Settings settings = settings;
+        private readonly DatabaseProjectHandler databaseProjectHandler = databaseProjectHandler;
+        private readonly ModelProjectHandler modelProjectHandler = modelProjectHandler;
+        private readonly ServerProjectHandler serverProjectHandler = serverProjectHandler;
+        private readonly WebFrontEndHandler webFrontEndHandler = webFrontEndHandler;
+        private readonly string[] extensions = [".mdd", ".m3l"];
 
-        public Runner(ILogger<Runner> logger, Settings.Settings settings,
-            DatabaseProjectHandler databaseProjectHandler,
-            ModelProjectHandler modelProjectHandler,
-            ServerProjectHandler serverProjectHandler,
-            WebFrontEndHandler webFrontEndHandler)
-        {
-            this.logger = logger;
-            this.settings = settings;
-            this.databaseProjectHandler = databaseProjectHandler;
-            this.modelProjectHandler = modelProjectHandler;
-            this.serverProjectHandler = serverProjectHandler;
-            this.webFrontEndHandler = webFrontEndHandler;
-        }
-
-        internal async Task RunAsync()
+        public async Task RunAsync()
         {
             if (settings.BasePath == null) return;
 
@@ -79,7 +66,7 @@ namespace MDDBooster
                     sb.Clear();
                     sb.AppendLine(line);
                 }
-                else if (line.StartsWith("-"))
+                else if (line.StartsWith('-'))
                 {
                     sb.AppendLine(line);
                 }
@@ -124,7 +111,7 @@ namespace MDDBooster
                         throw new NotImplementedException();
                 }
 
-                p.Interfaces = interfaces.ToArray();
+                p.Interfaces = [.. interfaces];
                 p.Abstract = abstractMeta;
             });
 
@@ -134,14 +121,14 @@ namespace MDDBooster
                 foreach (var p in models.OfType<TableMeta>())
                 {
                     if (defaults is InterfaceMeta m1)
-                        p.Interfaces = new[] { m1 };
+                        p.Interfaces = [m1];
 
                     else if (defaults is AbstractMeta m2)
                         p.Abstract = m2;
                 }
             }
 
-            return models.ToArray();
+            return [.. models];
         }
     }
 }

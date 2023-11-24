@@ -3,22 +3,16 @@ using Microsoft.Extensions.Logging;
 
 namespace MDDBooster.Handlers
 {
-    internal class ModelProjectHandler
+    public class ModelProjectHandler(ILogger<ModelProjectHandler> logger, Settings.Settings settings)
     {
-        private readonly ILogger<ModelProjectHandler> logger;
-        private readonly Settings.Settings settings;
+        private readonly ILogger<ModelProjectHandler> logger = logger;
+        private readonly Settings.Settings settings = settings;
 
-        private readonly string[] exceptNames = new string[] 
-        { 
+        private readonly string[] exceptNames =
+        [
             "IEntity", "IIdEntity", "IKeyEntity", "IAtEntity", "IUndeletable" ,
             "IdEntity", "KeyEntity"
-        };
-
-        public ModelProjectHandler(ILogger<ModelProjectHandler> logger, Settings.Settings settings)
-        {
-            this.logger = logger;
-            this.settings = settings;
-        }
+        ];
 
         internal async Task RunAsync(IModelMeta[] models)
         {
@@ -27,9 +21,7 @@ namespace MDDBooster.Handlers
             var projPath = Utils.ResolvePath(settings.BasePath, settings.ModelProject.Path);
             if (projPath == null) return;
 
-            var ns = settings.ModelProject.Namespace;
-            if (ns == null) throw new Exception("required settings, model-ns");
-
+            var ns = settings.ModelProject.Namespace ?? throw new Exception("required settings, model-ns");
             var basePath = Path.Combine(projPath, "Entity_");
             if (Directory.Exists(basePath)) Directory.Delete(basePath, true);
             Directory.CreateDirectory(basePath);

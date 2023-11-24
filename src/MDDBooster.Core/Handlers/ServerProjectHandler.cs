@@ -4,16 +4,10 @@ using System.Reflection;
 
 namespace MDDBooster.Handlers
 {
-    internal class ServerProjectHandler
+    public class ServerProjectHandler(ILogger<ServerProjectHandler> logger, Settings.Settings settings)
     {
-        private readonly ILogger<ServerProjectHandler> logger;
-        private readonly Settings.Settings settings;
-
-        public ServerProjectHandler(ILogger<ServerProjectHandler> logger, Settings.Settings settings)
-        {
-            this.logger = logger;
-            this.settings = settings;
-        }
+        private readonly ILogger<ServerProjectHandler> logger = logger;
+        private readonly Settings.Settings settings = settings;
 
         internal async Task RunAsync(IModelMeta[] models)
         {
