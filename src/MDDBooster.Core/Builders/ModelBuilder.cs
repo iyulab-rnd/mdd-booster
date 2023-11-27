@@ -170,20 +170,6 @@ namespace MDDBooster.Builders
             }
             return lines;
         }
-
-        protected static string BuildUsings()
-        {
-            var defaultUsing = @"using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;";
-
-            if (Settings.ModelProject.Usings == null) return defaultUsing;
-
-            var usings = Settings.ModelProject.Usings.Select(p => $"using {p};");
-            var text = Constants.NewLine + string.Join(Constants.NewLine, usings);
-            return defaultUsing + text;
-        }
     }
 
     internal class InterfaceBuilder : ModelBuilder
@@ -207,7 +193,6 @@ using System.Text.Json.Serialization;";
                 : $" : {baseText}";
 
             var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
-{BuildUsings()}
 
 namespace {ns}.Entity
 {{
@@ -281,7 +266,6 @@ namespace {ns}.Entity
             if (meta is AbstractMeta abstractMeta)
             {
                 code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
-{BuildUsings()}
 
 namespace {ns}.Entity
 {{{enumSyntax}
@@ -303,7 +287,6 @@ namespace {ns}.Entity
                 }
                 var attributesText = string.Join("\r\n\t", attributes);
                 code = $@"// {Constants.NO_NOT_EDIT_MESSAGE}
-{BuildUsings()}
 
 namespace {ns}.Entity
 {{{enumSyntax}

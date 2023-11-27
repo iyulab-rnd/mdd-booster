@@ -14,8 +14,8 @@ internal class Program
         var stopwatch = Stopwatch.StartNew();
 
 #if DEBUG
-        args = [@"D:\data\PlotPals\mdd"];
-        //args = new string[] { @"D:\data\U-Platform\mdd" };
+        //args = [@"D:\data\PlotPals\mdd"];
+        args = [@"D:\data\U-Platform\mdd"];
         //args = new string[] { @"D:\data\AR-NewConnect\mdd" };
 #endif
 
