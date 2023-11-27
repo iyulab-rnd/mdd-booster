@@ -30,10 +30,7 @@ namespace MDDBooster.Handlers
                 settings.ServerProject.Namespace,
                 basePath);
 
-            if (settings.ServerProject.UseGraphQL)
-            {
-                BuildGraphQL(models, settings);
-            }
+            BuildGraphQL(models, settings);
 
             await Task.CompletedTask;
         }

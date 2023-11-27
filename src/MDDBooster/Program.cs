@@ -41,8 +41,6 @@ internal class Program
                 var settings = JsonSerializer.Deserialize<Settings>(File.OpenRead(filePath), options) ?? throw new Exception("cannot read settings");
                 settings.BasePath ??= Path.GetDirectoryName(filePath);
 
-                Resolver.Settings = settings;
-
                 services.AddSingleton(settings);
                 services.AddSingleton<App>();
                 services.AddSingleton<Runner>();

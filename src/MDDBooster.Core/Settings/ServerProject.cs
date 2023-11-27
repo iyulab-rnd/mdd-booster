@@ -15,7 +15,5 @@ namespace MDDBooster.Settings
         
         [JsonPropertyName("ns")]
         public string Namespace { get; set; }
-
-        public bool UseGraphQL { get; set; }
     }
 }

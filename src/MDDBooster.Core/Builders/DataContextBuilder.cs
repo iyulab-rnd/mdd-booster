@@ -8,7 +8,7 @@ using System.Xml.Linq;
 
 namespace MDDBooster.Builders
 {
-    internal class DataContextBuilder
+    public class DataContextBuilder
     {
         private readonly IModelMeta[] models;
 
@@ -18,7 +18,7 @@ namespace MDDBooster.Builders
         }
 
 
-        internal void Build(string modelNS, string ns, string basePath)
+        public void Build(string modelNS, string ns, string basePath)
         {
             var tables = models.OfType<TableMeta>();
             var dbsetLines = tables.Select(p => $"\t\tpublic DbSet<{p.Name}> {p.Name.ToPlural()} {{ get; set; }}");

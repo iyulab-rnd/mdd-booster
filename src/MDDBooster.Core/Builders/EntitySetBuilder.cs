@@ -1,6 +1,6 @@
 ﻿namespace MDDBooster.Builders
 {
-    internal class EntitySetBuilder
+    public class EntitySetBuilder
     {
         private IModelMeta[] models;
 
@@ -9,7 +9,7 @@
             this.models = models;
         }
 
-        internal void Build(string modelNS, string serverNS, string basePath)
+        public void Build(string modelNS, string serverNS, string basePath)
         {
             var tables = models.OfType<TableMeta>();
 

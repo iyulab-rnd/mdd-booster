@@ -7,7 +7,7 @@ using System.Xml.Linq;
 
 namespace MDDBooster.Builders
 {
-    internal abstract class ModelBuilder : BuilderBase
+    public abstract class ModelBuilder : BuilderBase
     {
         public ModelBuilder(ModelMetaBase m) : base(m)
         {
@@ -36,16 +36,40 @@ namespace MDDBooster.Builders
             var required = c.NN != null && c.NN == true ? "required " : string.Empty;
 
             var defaultText = string.Empty;
-            if (c.Default != null)
+            if (string.IsNullOrWhiteSpace(c.Default) != true)
             {
                 if (c.Default.Contains("@by"))
                     defaultText = $" = {c.Default};";
 
                 else if (c.Default.Contains("@now"))
                     defaultText = $" = DateTime.Now;";
-                
+
+                else if (sysType == typeof(bool))
+                {
+                    if (c.Default == "1")
+                        defaultText = $" = true;";
+
+                    else if (c.Default == "0")
+                        defaultText = $" = false;";
+
+                    else if (bool.TryParse(c.Default, out var bDefault))
+                        defaultText = $" = {bDefault};";
+
+                    else
+                        defaultText = $" = {c.Default};";
+                }
+                else if (sysType == typeof(string))
+                {
+                    if (c.Default.StartsWith('\"'))
+                        defaultText = $" = {c.Default};";
+
+                    else
+                        defaultText = $" = \"{c.Default}\";";
+                }
                 else
+                {
                     defaultText = $" = {c.Default};";
+                }
 
                 required = string.Empty;
             }
@@ -141,6 +165,12 @@ namespace MDDBooster.Builders
                 var c = column;
                 var pName = Utils.GetNameWithoutKey(c.Name);
                 var typeName = c.GetForeignKeyEntityName();
+
+                if (this.Columns.Any(p => p.Name == pName))
+                {
+                    pName += "Item"; 
+                }
+
                 var line = $@"[ForeignKey(nameof({c.Name}))]
 		public virtual {typeName}? {pName} {{ get; set; }}";
                 lines.Add(line);
@@ -172,7 +202,7 @@ namespace MDDBooster.Builders
         }
     }
 
-    internal class InterfaceBuilder : ModelBuilder
+    public class InterfaceBuilder : ModelBuilder
     {
         public InterfaceBuilder(ModelMetaBase m) : base(m)
         {
@@ -207,7 +237,7 @@ namespace {ns}.Entity
         }
     }
 
-    internal class EntityBuilder : ModelBuilder
+    public class EntityBuilder : ModelBuilder
     {
         public EntityBuilder(ModelMetaBase m) : base(m)
         {

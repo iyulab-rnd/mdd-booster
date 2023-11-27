@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 
 namespace MDDBooster
 {
-    public static class StringHelper
+    internal static class StringHelper
     {
         public static string? RegexReturn(this string input, string pattern, int index)
         {

@@ -36,7 +36,7 @@ namespace MDDBooster
                     var fileText = await File.ReadAllTextAsync(filePath);
                     var models = MDDParser.Parse(fileText);
 
-                    Resolver.Models = models;
+                    Resolver.Init(settings, models);
 
                     await databaseProjectHandler.RunAsync(models);
                     await modelProjectHandler.RunAsync(models);

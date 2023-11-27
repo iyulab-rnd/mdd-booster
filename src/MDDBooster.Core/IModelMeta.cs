@@ -355,7 +355,7 @@ namespace MDDBooster
             Name = name;
             DataType = dataType;
 
-            if (line.RegexReturn(@"\s*=\s*(.*?)\s+", 1) is string defaultText)
+            if (line.RegexReturn(@"\s*=\s*(.*)?", 1) is string defaultText)
             {
                 this.Default = defaultText.Trim();
             }
@@ -372,9 +372,17 @@ namespace MDDBooster
             ParseOptions(lineText);
             ParseAttribtes(lineText);
 
-            if (this.FK != true && this.Name.StartsWith("_") != true && (this.Name.EndsWith("_id") || this.Name.EndsWith("_key")))
+            if (this.FK != true && this.Name.StartsWith('_') != true && (this.Name.EndsWith("_id") || this.Name.EndsWith("_key")))
             {
-                FK = true;
+                var fkEntityName = this.Name.Left("_");
+                if (Resolver.Models!.Any(p => p.Name == fkEntityName))
+                {
+                    FK = true;
+                }
+                else
+                {
+                    // 존재하지 않는 Entity
+                }
             }
         }
 
@@ -480,17 +488,20 @@ namespace MDDBooster
 
         internal string GetForeignKeyEntityName()
         {
+            string ret;
             if (LineText.Contains("FK:"))
             {
                 var s = LineText.GetBetween("FK:", ")");
                 var name =  s.LeftOr(",");
-                return name.Contains('.') ? name.Left(".") : name.LeftOr("_");
+                ret = name.Contains('.') ? name.Left(".") : name.LeftOr("_");
             }
             else if (Name.Contains('_'))
-                return Name.Left("_");
+                ret = Name.Left("_");
 
             else
                 throw new NotImplementedException();
+
+            return ret.Trim();
         }
 
         internal string? GetForeignKeyOption()

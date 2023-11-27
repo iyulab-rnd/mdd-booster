@@ -4,7 +4,7 @@ namespace MDDBooster
 {
     public static class Utils
     {
-        internal static string ResolvePath(string? basePath, params string[] subPaths)
+        public static string ResolvePath(string? basePath, params string[] subPaths)
         {
             basePath ??= Assembly.GetExecutingAssembly().Location;
 

@@ -9,7 +9,7 @@ using System.Xml.Linq;
 
 namespace MDDBooster.Builders
 {
-    internal class GraphQLBuilder
+    public class GraphQLBuilder
     {
         private readonly IModelMeta[] models;
         private readonly Settings.Settings settings;
@@ -46,7 +46,7 @@ namespace MDDBooster.Builders
             this.settings = settings;
         }
 
-        internal void Build()
+        public void Build()
         {
             BuildGqlModels();
             BuildGqlAppFiles();

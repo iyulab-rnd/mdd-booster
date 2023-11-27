@@ -8,10 +8,13 @@ namespace MDDBooster
 {
     public static class Resolver
     {
-#pragma warning disable CS8618 // 생성자를 종료할 때 null을 허용하지 않는 필드에 null이 아닌 값을 포함해야 합니다. null 허용으로 선언해 보세요.
-        public static MDDBooster.Settings.Settings Settings { get; set; }
-        public static IModelMeta[] Models { get; internal set; }
+        public static Settings.Settings? Settings { get; private set; }
+        public static IModelMeta[]? Models { get; private set; }
 
-#pragma warning restore CS8618 // 생성자를 종료할 때 null을 허용하지 않는 필드에 null이 아닌 값을 포함해야 합니다. null 허용으로 선언해 보세요.
+        public static void Init(Settings.Settings settings, IModelMeta[] models)
+        {
+            Models = models;
+            Settings = settings;
+        }
     }
 }
