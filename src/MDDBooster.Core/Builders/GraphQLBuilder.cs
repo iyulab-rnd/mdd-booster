@@ -64,12 +64,14 @@ namespace MDDBooster.Builders
             {
                 var name = table.Name;
                 var pName = table.Name.ToPlural();
+                var pk = table.GetPKColumn();
+                var pkType = pk.GetSystemTypeAlias();
 
                 var sbPropertyLines = new StringBuilder();
                 foreach (var column in table.FullColumns)
                 {
                     var sysType = column.GetSystemType();
-                    if (sysType == typeof(Guid) || sysType == typeof(string))
+                    if (sysType == typeof(int) || sysType == typeof(Guid) || sysType == typeof(string))
                     {
                         var typeName = column.GetSystemTypeAlias();
                         var propertyName = column.Name.ToPlural();
@@ -80,14 +82,11 @@ namespace MDDBooster.Builders
                 var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
 #pragma warning disable CS8618, IDE1006
 
-using Iyu.Data;
-using {modelNS}.Entity;
-
 namespace {modelNS}.Gql
 {{
     public class {name}SearchRequest : IGqlSearchRequest<{name}>
     {{
-        public Guid _key {{ get; set; }}
+        public {pkType} {pk.Name} {{ get; set; }}
         public string[] Columns {{ get; set; }}
     }}
 
@@ -128,10 +127,6 @@ namespace {modelNS}.Gql
 
             var ns = settings.ServerProject!.Namespace;
             var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
-using GraphQL.Types;
-using Iyu.Server.OData.Services;
-using Microsoft.Extensions.DependencyInjection;
-using {ns}.Gql.Schemas;
 
 namespace {ns}.Gql
 {{
@@ -159,8 +154,6 @@ namespace {ns}.Gql
         {
             var ns = settings.ServerProject!.Namespace;
             var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
-using GraphQL.Instrumentation;
-using GraphQL.Types;
 
 namespace {ns}.Gql
 {{
@@ -187,7 +180,6 @@ namespace {ns}.Gql
         {
             var ns = settings.ServerProject!.Namespace;
             var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
-using Iyu.Server.OData.Gql;
 
 namespace {ns}.Gql
 {{
@@ -218,6 +210,9 @@ namespace {ns}.Gql
             var entityName = table.Name;
             var entityNames = table.Name.ToPlural();
 
+            var pk = table.GetPKColumn();
+            //var pkType = pk.GetSystemTypeAlias();
+
             var sbPropertyLines = new StringBuilder();
             foreach (var column in table.FullColumns)
             {
@@ -236,10 +231,6 @@ namespace {ns}.Gql
 
 
             var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
-using GraphQL.Types;
-using Iyu;
-using {modelNS}.Entity;
-using {modelNS}.Gql;
 
 namespace {serverNS}.Gql.Schemas
 {{
@@ -255,7 +246,7 @@ namespace {serverNS}.Gql.Schemas
             {{
                 new QueryArgument<NonNullGraphType<IdGraphType>>
                 {{
-                    Name = nameof({entityName}._key)
+                    Name = nameof({entityName}.{pk.Name})
                 }}
             }});
 
@@ -342,8 +333,6 @@ namespace {serverNS}.Gql.Schemas
             var fieldLinesText = string.Join($"{Constants.NewLine}\t\t\t", fieldLines);
 
             var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
-using GraphQL.Types;
-using {modelNS}.Entity;
 
 namespace {serverNS}.Gql.Schemas
 {{
@@ -370,8 +359,6 @@ namespace {serverNS}.Gql.Schemas
             var entityNames = table.Name.ToPlural();
 
             var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
-using GraphQL.Types;
-using Iyu.Server.OData.Services;
 
 namespace {serverNS}.Gql.Schemas
 {{
@@ -395,6 +382,9 @@ namespace {serverNS}.Gql.Schemas
             var serverNS = settings.ServerProject!.Namespace;
             var entityName = table.Name;
             var entityNames = table.Name.ToPlural();
+            var pk = table.GetPKColumn();
+            var pkName = pk.Name;
+            var pkNames = pkName.ToPlural();
 
             var childResolverLinesSB = new StringBuilder();
             foreach (var child in table.GetChildren())
@@ -408,7 +398,7 @@ namespace {serverNS}.Gql.Schemas
             {{
                 var request = new {childNames}SearchRequest()
                 {{
-                    //{entityName}_keys = new Guid[] {{ context.Source._key }},
+                    //{entityName}{pkNames} = new {pk.GetSystemTypeAlias()}[] {{ context.Source.{pkName} }},
                     Columns = context.GetSelectColumns(),
                     Page = context.HasArgument(""Page"") ? context.GetArgument<int>(""Page"") : null,
                     PageSize = context.HasArgument(""PageSize"") ? context.GetArgument<int>(""PageSize"") : null,
@@ -423,12 +413,8 @@ namespace {serverNS}.Gql.Schemas
             }
 
             var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
+
 using GraphQL;
-using GraphQL.Resolvers;
-using Iyu.Server.OData.Services;
-using {modelNS}.Entity;
-using {modelNS}.Gql;
-using SqlKata.Execution;
 
 namespace {serverNS}.Gql.Schemas
 {{
@@ -449,7 +435,7 @@ namespace {serverNS}.Gql.Schemas
             var query = resolver.ResolveQueryFactory()
                 .Query(nameof({entityName}))
                 .When(request.Columns.AnyItem(), q => q.Select(request.Columns))
-                .Where(q => q.Where(""_key"", request._key))
+                .Where(q => q.Where(""{pkName}"", request.{pkName}))
                 .FirstOrDefaultAsync<{entityName}?>();
 
             return query;
@@ -460,7 +446,7 @@ namespace {serverNS}.Gql.Schemas
             var query = resolver.ResolveQueryFactory()
                 .Query(nameof({entityName}))
                 .When(request.Columns != null && request.Columns.AnyItem(), q => q.Select(request.Columns))
-                .When(request._keys != null && request._keys.AnyItem(), q => q.WhereIn(nameof({entityName}._key), request._keys))
+                .When(request.{pkNames} != null && request.{pkNames}.AnyItem(), q => q.WhereIn(nameof({entityName}.{pkName}), request.{pkNames}))
                 .ForPage(request.Page ?? request.DefaultPage, request.PageSize ?? request.DefaultPageSize)
                 .GetAsync<{entityName}>();
 
@@ -473,7 +459,7 @@ namespace {serverNS}.Gql.Schemas
             {{
                 var request = new {entityName}SearchRequest()
                 {{
-                    _key = context.GetArgument<Guid>(nameof({entityName}SearchRequest._key)),
+                    {pkName} = context.GetArgument<{pk.GetSystemTypeAlias()}>(nameof({entityName}SearchRequest.{pkName})),
                     Columns = context.GetSelectColumns()
                 }};
                 var query = resolver.FindOneAsync(request);
@@ -489,7 +475,7 @@ namespace {serverNS}.Gql.Schemas
             {{
                 var request = new {entityNames}SearchRequest()
                 {{
-                    _keys = context.GetArgument<Guid[]?>(nameof({entityNames}SearchRequest._keys)),
+                    {pkNames} = context.GetArgument<{pk.GetSystemTypeAlias()}[]?>(nameof({entityNames}SearchRequest.{pkNames})),
                     Columns = context.GetSelectColumns(),
                     Page = context.HasArgument(""Page"") ? context.GetArgument<int>(""Page"") : null,
                     PageSize = context.HasArgument(""PageSize"") ? context.GetArgument<int>(""PageSize"") : null,

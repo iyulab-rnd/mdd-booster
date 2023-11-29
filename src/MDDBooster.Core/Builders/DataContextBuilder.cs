@@ -27,9 +27,6 @@ namespace MDDBooster.Builders
             var onModelCreatingText = GetOnModelCreatingText(tables);
 
             var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
-using Iyu.Data;
-using Microsoft.EntityFrameworkCore;
-using {modelNS}.Entity;
 
 namespace {ns}.Services
 {{
@@ -72,16 +69,20 @@ namespace {ns}.Services
                 {
                     if (column.FK && column.Name.Contains('_') != true)
                     {
-                        var pName = Utils.GetNameWithoutKey(column.Name);
-                        var byName = $"{table.Name.ToPlural()}By{pName}";
-                        var line = @$"
+                        var sysType = column.GetSystemType();
+                        if (sysType == typeof(int) || sysType == typeof(Guid))
+                        {
+                            var pName = Utils.GetNameWithoutKey(column.Name);
+                            var byName = $"{table.Name.ToPlural()}By{pName}";
+                            var line = @$"
             modelBuilder.Entity<{table.Name}>()
               .HasOne(e => e.{pName})
               .WithMany(e => e.{byName})
               .OnDelete(DeleteBehavior.NoAction);";
-                        sb.AppendLine(line);
+                            sb.AppendLine(line);
+                        }
                     }
-                }   
+                }
             }
             return sb.ToString();
         }

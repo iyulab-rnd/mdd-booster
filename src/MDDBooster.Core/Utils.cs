@@ -10,7 +10,10 @@ namespace MDDBooster
 
             var fistPath = subPaths.FirstOrDefault();
             if (fistPath == null) return basePath;
-            if (Path.IsPathRooted(fistPath)) return fistPath;
+            if (Path.IsPathRooted(fistPath))
+            {
+                basePath = fistPath;
+            }
 
             var cd = new DirectoryInfo(basePath);
             var parameterPath = string.Join("/", subPaths);

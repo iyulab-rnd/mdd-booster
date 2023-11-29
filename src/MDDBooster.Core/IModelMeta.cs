@@ -333,7 +333,13 @@ namespace MDDBooster
             var nameText = line.GetBetween("-", ":").Trim();
             var name = nameText;
 
-            if (name.EndsWith("?"))
+#if DEBUG
+            if (name == "CreatedBy")
+            {
+            }
+#endif
+
+            if (name.EndsWith('?'))
             {
                 this.NN = false;
                 name = name[..^1];
@@ -357,6 +363,7 @@ namespace MDDBooster
 
             if (line.RegexReturn(@"\s*=\s*(.*)?", 1) is string defaultText)
             {
+                defaultText = defaultText.LeftOr("[").LeftOr("//");
                 this.Default = defaultText.Trim();
             }
 

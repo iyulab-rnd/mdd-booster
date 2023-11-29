@@ -1,9 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging.Abstractions;
-using System;
-using System.Data.Common;
-using System.Text;
-using System.Xml.Linq;
+﻿using System.Text;
 
 namespace MDDBooster.Builders
 {
@@ -15,10 +10,10 @@ namespace MDDBooster.Builders
 
         protected static Settings.Settings Settings => Resolver.Settings;
 
-        protected static string[] OutputPropertyLines(ColumnMeta c)
+        protected string[] OutputPropertyLines(ColumnMeta c)
         {
 #if DEBUG
-            if (c.Name == "OwnerKey")
+            if (c.Name == "CreatedBy")
             {
             }
 #endif
@@ -74,9 +69,14 @@ namespace MDDBooster.Builders
                 required = string.Empty;
             }
 
+            var isInterface = this.meta is InterfaceMeta;
+            var publicText = isInterface ? string.Empty : "public ";
+            var requiredText = isInterface ? string.Empty : required;
+            if (isInterface) defaultText = string.Empty;
+
             var lines = new List<string>()
             {
-                @$"{attributesText}public {required}{typeAlias}{nullable} {c.Name} {{ get; set; }}{defaultText}"
+                @$"{attributesText}{publicText}{requiredText}{typeAlias}{nullable} {c.Name} {{ get; set; }}{defaultText}"
             };
 
             if (c.IsEnumType())
@@ -210,7 +210,7 @@ namespace MDDBooster.Builders
 
         public void Build(string ns, string basePath)
         {
-            var propertyLines = Columns.SelectMany(p => OutputPropertyLines(p));
+            var propertyLines = Columns.SelectMany(OutputPropertyLines);
             var propertyLinesText = string.Join($"{Constants.NewLine}{Constants.NewLine}\t\t", propertyLines);
 
             var className = Name;

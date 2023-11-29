@@ -29,8 +29,6 @@
             var methods = string.Join(Constants.NewLine, methodLines);
 
             var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
-using Microsoft.OData.ModelBuilder;
-using {modelNS}.Entity;
 
 namespace {serverNS}.Services
 {{
