@@ -30,15 +30,9 @@ namespace MDDBooster.Builders
 
 namespace {ns}.Services
 {{
-    public partial class DataContext : DataContextBase
+    public partial class DataContext(IHttpContextAccessor httpContextAccessor, DbContextOptions options) : ODataContext(httpContextAccessor, options)
     {{
 {dbSet}
-
-#pragma warning disable CS8618
-        public DataContext(DbContextOptions options) : base(options)
-        {{
-        }}
-#pragma warning restore CS8618
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {{
@@ -70,17 +64,34 @@ namespace {ns}.Services
                     if (column.FK && column.Name.Contains('_') != true)
                     {
                         var sysType = column.GetSystemType();
-                        if (sysType == typeof(int) || sysType == typeof(Guid))
+                        if (sysType == typeof(string))
                         {
-                            var pName = Utils.GetNameWithoutKey(column.Name);
-                            var byName = $"{table.Name.ToPlural()}By{pName}";
+                            var fkEntityName = column.GetForeignKeyEntityName();
+                            var fkColumnName = column.GetForeignKeyColumnName();
                             var line = @$"
+            modelBuilder.Entity<{fkEntityName}>().HasAlternateKey(p => p.{fkColumnName});";
+                            sb.AppendLine(line);
+
+                            var manyName = Utils.GetVirtualManeName(table);
+                            line = $@"
             modelBuilder.Entity<{table.Name}>()
-              .HasOne(e => e.{pName})
-              .WithMany(e => e.{byName})
-              .OnDelete(DeleteBehavior.NoAction);";
+                .HasOne(p => p.{fkEntityName})
+                .WithMany(p => p.{manyName})
+                .HasForeignKey(p => p.{column.Name})
+                .HasPrincipalKey(p => p.{column.Name});";
                             sb.AppendLine(line);
                         }
+
+                        //var pName = Utils.GetNameWithoutKey(column.Name);
+                        //var byName = Utils.GetVirtualManeName(table, null, null);
+                        
+                        /*
+                                    // CommonCodeGroup에서 GroupCode를 대체 키로 설정
+
+
+                                    // CommonCode의 GroupCode를 외래 키로 설정
+
+                         */
                     }
                 }
             }

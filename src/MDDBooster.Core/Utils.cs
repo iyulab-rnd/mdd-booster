@@ -61,5 +61,24 @@ namespace MDDBooster
             if (Directory.Exists(path)) Directory.Delete(path, true);
             Directory.CreateDirectory(path);
         }
+
+        internal static string GetVirtualOneName(TableMeta table, ColumnMeta column)
+        {
+            if (column.Name.Contains('_'))
+            {
+                return column.Name.Left("_");
+            }
+            else
+            {
+                var fkEntityName = column.GetForeignKeyEntityName();
+                return fkEntityName;
+            }
+        }
+
+        internal static string GetVirtualManeName(TableMeta child)
+        {
+            var pName = child.Name.ToPlural();
+            return pName;
+        }
     }
 }

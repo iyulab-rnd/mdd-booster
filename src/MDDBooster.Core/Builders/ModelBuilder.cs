@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System;
+using System.Text;
 
 namespace MDDBooster.Builders
 {
@@ -13,7 +14,7 @@ namespace MDDBooster.Builders
         protected string[] OutputPropertyLines(ColumnMeta c)
         {
 #if DEBUG
-            if (c.Name == "CreatedBy")
+            if (c.Name == "ConsumerPrice")
             {
             }
 #endif
@@ -112,7 +113,7 @@ namespace MDDBooster.Builders
         private static readonly string[] ignoreAttributeName = new string[] { "PK", "Unique", "UQ", "UI", "FK", "Index", "desc" };
         private static IEnumerable<string> BuildAttributesLines(ColumnMeta c)
         {
-            if (c.Name == "MemberKey")
+            if (c.Name == "Cost")
             {
 
             }
@@ -149,11 +150,21 @@ namespace MDDBooster.Builders
                 yield return $"[MaxLength({size})]";
             }
 
+            if (c.UQ)
+            {
+                yield return $"[Unique]";
+            }
+
+            if (c.GetSqlType() == "MONEY")
+            {
+                yield return $"[Column(TypeName = \"money\")]";
+            }
+
             foreach(var attribute in c.Attributes)
             {
                 if (ignoreAttributeName.Contains(attribute.Name)) continue;
 
-                yield return $"[{attribute.Line}]";
+                yield return $"[{attribute.Line.Trim()}]";
             }
         }
 
@@ -163,13 +174,8 @@ namespace MDDBooster.Builders
             foreach(var column in this.Columns.Where(p => p.FK))
             {
                 var c = column;
-                var pName = Utils.GetNameWithoutKey(c.Name);
                 var typeName = c.GetForeignKeyEntityName();
-
-                if (this.Columns.Any(p => p.Name == pName))
-                {
-                    pName += "Item"; 
-                }
+                var pName = Utils.GetVirtualOneName((this.meta as TableMeta)!, column);
 
                 var line = $@"[ForeignKey(nameof({c.Name}))]
 		public virtual {typeName}? {pName} {{ get; set; }}";
@@ -191,9 +197,8 @@ namespace MDDBooster.Builders
                         var nm = c.GetForeignKeyEntityName();
                         if (table.Name != nm) continue;
 
-                        var pName = child.Name.ToPlural();
-                        pName = pName + "By" + Utils.GetNameWithoutKey(c.Name);
-                        var line = $@"public virtual List<{child.Name}>? {pName} {{ get; set; }}";
+                        var pName = Utils.GetVirtualManeName(child);
+                        var line = $@"public virtual ICollection<{child.Name}>? {pName} {{ get; set; }}";
                         lines.Add(line);
                     }
                 }

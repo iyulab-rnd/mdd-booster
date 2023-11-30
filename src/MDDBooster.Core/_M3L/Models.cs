@@ -19,6 +19,7 @@ public class EntityOption
 public class EntityProperty
 {
     public required string Name { get; set; }
+    public string? DataType { get; set; }
     public Type? SystemType { get; set; }
     public bool IsNotNull { get; set; }
     public string? Label { get; set; }

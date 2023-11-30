@@ -334,11 +334,20 @@ namespace MDDBooster
             var name = nameText;
 
 #if DEBUG
-            if (name == "CreatedBy")
+            if (name.StartsWith("ConsumerPrice"))
             {
             }
 #endif
-
+            if (name.Contains('('))
+            {
+                this.Label = name.GetBetweenBlock("(", ")").Trim();
+                name = name.LeftOr("(").Trim();
+            }
+            else
+            {
+                this.Label = name.EndsWith('?') ? name[..^1] : name;
+            }
+            
             if (name.EndsWith('?'))
             {
                 this.NN = false;
@@ -346,16 +355,15 @@ namespace MDDBooster
             }
             else
             {
-                this.NN = true; 
+                this.NN = true;
             }
 
-            this.Label = name.GetBetween("(", ")").Trim();
-            if (string.IsNullOrEmpty(this.Label))
-                this.Label = name;
-            else
-                name = name.Left("(");
-
-            var dataType = line.RegexReturn(@"-.*?\:\s*(\w+)", 1) ?? throw new Exception($"Cannot Parse DataType, {lineText}");
+            var dataType = line.RegexReturn(@"\:\s+(\w+(\?|))", 1) ?? throw new Exception($"Cannot Parse DataType, {lineText}");
+            if (dataType.EndsWith('?'))
+            {
+                NN = false;
+                dataType = dataType[..^1];
+            }
 
             LineText = lineText;
             Name = name;
@@ -378,6 +386,14 @@ namespace MDDBooster
 
             ParseOptions(lineText);
             ParseAttribtes(lineText);
+
+            if (this.IsNotNull() && string.IsNullOrWhiteSpace(this.Default))
+            {
+                if (this.Attributes != null && this.Attributes.FirstOrDefault(p => p.Name == "Insert") is AttributeMeta insertAttr)
+                {
+                    this.Default = insertAttr.Value;
+                }
+            }
 
             if (this.FK != true && this.Name.StartsWith('_') != true && (this.Name.EndsWith("_id") || this.Name.EndsWith("_key")))
             {
@@ -498,12 +514,30 @@ namespace MDDBooster
             string ret;
             if (LineText.Contains("FK:"))
             {
-                var s = LineText.GetBetween("FK:", ")");
+                var s = LineText.GetBetween("FK:", "]");
                 var name =  s.LeftOr(",");
                 ret = name.Contains('.') ? name.Left(".") : name.LeftOr("_");
             }
             else if (Name.Contains('_'))
                 ret = Name.Left("_");
+
+            else
+                throw new NotImplementedException();
+
+            return ret.Trim();
+        }
+
+        internal string GetForeignKeyColumnName()
+        {
+            string ret;
+            if (LineText.Contains("FK:"))
+            {
+                var s = LineText.GetBetween("FK:", "]");
+                var p = s.LeftOr(",");
+                ret = p.Contains('.') ? p.Right(".") : Name.Right("_");
+            }
+            else if (Name.Contains('_'))
+                ret = Name.Right("_");
 
             else
                 throw new NotImplementedException();

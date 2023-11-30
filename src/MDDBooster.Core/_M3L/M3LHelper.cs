@@ -55,11 +55,13 @@ namespace M3L
                 foreach (var property in entity.Properties)
                 {
                     var optional = property.IsNotNull ? string.Empty : "?";
-                    var typeText = SystemTypeToTypeText(property.SystemType ?? throw new Exception("Null SystemType"));
+                    var typeText = property.DataType;
+                    typeText ??= SystemTypeToTypeText(property.SystemType ?? throw new Exception("Null SystemType"));
+
                     var label = string.IsNullOrEmpty(property.Label) ? string.Empty : $"({property.Label})";
 
                     var sizeText = string.Empty;
-                    if (property.Length > 0)
+                    if (property.Length > 0 && typeText.Contains('(') is false)
                     {
                         sizeText = $"({property.Length})";
                     }
@@ -85,13 +87,14 @@ namespace M3L
                         else 
                             attrText += $"[FK: {fk.Entity}.{fk.Property}]";
                     }
+                    //if (property.IsNotNull) attrText += "[NN]";
 
                     if (string.IsNullOrEmpty(attrText) != true)
                     {
                         attrText = "\t\t" + attrText;
                     }
 
-                    var propertyLine = $"- {property.Name}{label}: {typeText}{optional}{sizeText}{defaultText}{attrText}";
+                    var propertyLine = $"- {property.Name}{optional}{label}: {typeText}{sizeText}{defaultText}{attrText}";
                     sb.AppendLine(propertyLine);
                 }
             }
