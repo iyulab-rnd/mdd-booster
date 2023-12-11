@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics;
+using System.Reflection;
 
 namespace MDDBooster
 {
@@ -62,17 +63,20 @@ namespace MDDBooster
             Directory.CreateDirectory(path);
         }
 
-        internal static string GetVirtualOneName(TableMeta table, ColumnMeta column)
+        public static string GetVirtualOneName(TableMeta table, ColumnMeta column)
         {
+            string name;
             if (column.Name.Contains('_'))
             {
-                return column.Name.Left("_");
+                name = column.Name.Left("_");
             }
             else
             {
                 var fkEntityName = column.GetForeignKeyEntityName();
-                return fkEntityName;
+                name = fkEntityName;
             }
+
+            return table.Columns.Any(p => p.Name == name) ? name + "Item" : name;
         }
 
         internal static string GetVirtualManeName(TableMeta child)

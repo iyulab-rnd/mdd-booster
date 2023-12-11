@@ -12,6 +12,9 @@ namespace MDDBooster
             return m.Success ? m.Groups[index].Value : null;
         }
 
+        /// <summary>
+        /// search 이전의 값을 가져옵니다. search가 없으면 전체를 가져옵니다.
+        /// </summary>
         public static string LeftOr(this string input, string search, bool last = false)
         {
             if (input == null) return string.Empty;
@@ -23,6 +26,9 @@ namespace MDDBooster
             return input[..n];
         }
 
+        /// <summary>
+        /// search 이전의 값을 가져옵니다. search가 없으면 빈 문자열을 가져옵니다.
+        /// </summary>
         public static string Left(this string input, string search, bool last = false)
         {
             if (input == null) return string.Empty;
@@ -34,6 +40,9 @@ namespace MDDBooster
             return input[..n];
         }
 
+        /// <summary>
+        /// search 이후의 값을 가져옵니다. search가 없으면 빈 값을 가져옵니다.
+        /// </summary>
         public static string Right(this string input, string search, bool include = false, bool lastTo = true)
         {
             var n = lastTo ? input.LastIndexOf(search) : input.IndexOf(search);
@@ -47,6 +56,9 @@ namespace MDDBooster
                 return input[(n + search.Length)..];
         }
 
+        /// <summary>
+        /// search 이후의 값을 가져옵니다. search가 없으면 전체를 가져옵니다.
+        /// </summary>
         public static string RightOr(this string input, string search, bool include = false, bool lastTo = true)
         {
             var n = lastTo ? input.LastIndexOf(search) : input.IndexOf(search);

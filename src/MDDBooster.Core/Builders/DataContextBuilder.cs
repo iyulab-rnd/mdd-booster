@@ -68,6 +68,8 @@ namespace {ns}.Services
                         {
                             var fkEntityName = column.GetForeignKeyEntityName();
                             var fkColumnName = column.GetForeignKeyColumnName();
+                            var oneName = Utils.GetVirtualOneName(table, column);
+
                             var line = @$"
             modelBuilder.Entity<{fkEntityName}>().HasAlternateKey(p => p.{fkColumnName});";
                             sb.AppendLine(line);
@@ -75,10 +77,10 @@ namespace {ns}.Services
                             var manyName = Utils.GetVirtualManeName(table);
                             line = $@"
             modelBuilder.Entity<{table.Name}>()
-                .HasOne(p => p.{fkEntityName})
+                .HasOne(p => p.{oneName})
                 .WithMany(p => p.{manyName})
                 .HasForeignKey(p => p.{column.Name})
-                .HasPrincipalKey(p => p.{column.Name});";
+                .HasPrincipalKey(p => p.{fkColumnName});";
                             sb.AppendLine(line);
                         }
 

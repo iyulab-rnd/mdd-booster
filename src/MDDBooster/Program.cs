@@ -15,7 +15,8 @@ internal class Program
 
 #if DEBUG
         //args = [@"D:\data\PlotPals\mdd"];
-        args = [@"D:\data\U-Platform\mdd"];
+        //args = [@"D:\data\U-Platform\mdd"];
+        args = [@"D:\data\OCRProductListing\mdd"];
         //args = new string[] { @"D:\data\AR-NewConnect\mdd" };
 #endif
 

@@ -131,17 +131,24 @@ namespace MDDBooster.Builders
             if (c.FK)
             {
                 string typeName;
+                string? propName = null;
                 var attr = c.Attributes.FirstOrDefault(p => string.Equals(p.Name, "FK", StringComparison.OrdinalIgnoreCase));
                 if (attr != null && attr.Value != null)
                 {
                     typeName = attr.Value.LeftOr(".");
+                    propName = attr.Value.Right(".");
                 }
                 else
                 {
                     typeName = c.Name.LeftOr("_");
                 }
 
-                yield return $"[FK(typeof({typeName}))]";
+                if (propName == "_id" || propName == "_key") propName = null;
+
+                if (string.IsNullOrEmpty(propName))
+                    yield return $"[FK(typeof({typeName}))]";
+                else
+                    yield return $"[FK(typeof({typeName}), PropertyName = nameof(Entity.{typeName}.{propName}))]";
             }
 
             // MaxLength
