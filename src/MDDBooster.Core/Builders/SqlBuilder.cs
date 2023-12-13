@@ -177,11 +177,17 @@ GO";
                     }
                 }
 
-                if (defaultValue.Contains("@by"))
+                if (defaultValue.Contains("@by", StringComparison.OrdinalIgnoreCase))
                     defaultValue = "'@system'";
 
-                else if (defaultValue.Contains("@now"))
+                else if (defaultValue.Contains("@now", StringComparison.OrdinalIgnoreCase))
                     defaultValue = "GETDATE()";
+
+                else if (defaultValue.Contains("true", StringComparison.OrdinalIgnoreCase))
+                    defaultValue = "1";
+
+                else if (defaultValue.Contains("false", StringComparison.OrdinalIgnoreCase))
+                    defaultValue = "0";
 
                 output += $" DEFAULT {defaultValue}";
             }

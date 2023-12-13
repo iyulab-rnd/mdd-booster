@@ -338,14 +338,24 @@ namespace MDDBooster
             {
             }
 #endif
+            string label;
             if (name.Contains('('))
             {
-                this.Label = name.GetBetweenBlock("(", ")").Trim();
+                label = name.GetBetweenBlock("(", ")").Trim();
                 name = name.LeftOr("(").Trim();
             }
             else
             {
-                this.Label = name.EndsWith('?') ? name[..^1] : name;
+                label = name.EndsWith('?') ? name[..^1] : name;
+            }
+            if (label.Contains(','))
+            {
+                this.Label = label.LeftOr(",").Trim();
+                this.ShortName = label.RightOr(",").Trim();
+            }
+            else
+            {
+                this.Label = label;
             }
             
             if (name.EndsWith('?'))

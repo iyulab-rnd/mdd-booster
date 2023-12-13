@@ -49,10 +49,10 @@ namespace MDDBooster.Builders
                         defaultText = $" = false;";
 
                     else if (bool.TryParse(c.Default, out var bDefault))
-                        defaultText = $" = {bDefault};";
+                        defaultText = $" = {bDefault.ToString().ToLower()};";
 
                     else
-                        defaultText = $" = {c.Default};";
+                        defaultText = $" = {c.Default.ToLower()};";
                 }
                 else if (sysType == typeof(string))
                 {
@@ -184,8 +184,17 @@ namespace MDDBooster.Builders
                 var typeName = c.GetForeignKeyEntityName();
                 var pName = Utils.GetVirtualOneName((this.meta as TableMeta)!, column);
 
-                var line = $@"[ForeignKey(nameof({c.Name}))]
+                string line;
+                if (column.IsNotNull())
+                {
+                    line = $@"[ForeignKey(nameof({c.Name}))]
+		public virtual {typeName} {pName} {{ get; set; }} = null!;";
+                }
+                else
+                {
+                    line = $@"[ForeignKey(nameof({c.Name}))]
 		public virtual {typeName}? {pName} {{ get; set; }}";
+                }
                 lines.Add(line);
             }
             return lines;
