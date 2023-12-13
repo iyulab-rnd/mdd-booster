@@ -290,12 +290,10 @@ namespace {serverNS}.Gql.Schemas
                 graphType = "IdGraphType";
                 return true;
             }
-            else if (mapGraphTypes.TryGetValue(column.GetSystemType(), out graphType))
-            {
-                return true;
-            }
             else
-                return false;
+            {
+                return mapGraphTypes.TryGetValue(column.GetSystemType(), out graphType);
+            }
         }
 
         private void BuildSchemaGraphType(string basePath, TableMeta table)

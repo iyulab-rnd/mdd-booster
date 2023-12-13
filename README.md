@@ -1,28 +1,81 @@
 # MDD Booster
 
-MDD 를 지원하는 코드 생성기 입니다.
+A code generator that supports MDD.
 
-**설치**
+**Install**
 
-> `dotnet tool install mdd-booster --glob`
+> `dotnet tool install --global MDD-Booster`
 
-**업데이트**
+**Update**
 
 > `dotnet tool update mdd-booster --global --no-cache`
-<br> --no-cache 가 붙여있어야 최신을 받을 수 있음
 
-**실행**
+**Run**
 
-> `mdd <directory-path>`
-<br> // `directory-path` 매개변수로 실행
-
-> `mdd` // 현재경로
+> `mdd <directory-path>` // `directory-path` Run with parameters
+> `mdd` // Current Path
 
 **Settings**
 
-`settings.json` 파일이 필요합니다.
+`settings.json`
 
 ```
 {
+	"modelProject": {
+		"path": "../src/MyApp",
+		"ns": "MyApp",
+		"usings": [ "Iyu.Entity" ]
+	},
+	"databaseProject": {
+		"path": "../src/MyApp.Database"
+	},
+	"serverProject": {
+		"path": "../src/MyApp.MainServer",
+		"ns": "MyApp.MainServer",
+		"useGraphQL": true
+	},
+	"webFrontEnd": {
+		"models": [
+			{
+				"ns": "MetaModels",
+				"modelPath": "../src/MyApp.Bridge/Models",
+				"ts-file": "../src/MyApp.MainServer.WebApp.FE/src/models/meta-models.ts"
+			}
+		]
+	},	
 }
+```
+
+**M3L**
+`tables.m3l`
+
+Samples .1
+```
+
+## IEntity
+
+## IKeyEntity : IEntity
+- _key: guid			            [PK, Without]
+
+## IAtEntity : IEntity
+- CreatedAt: datetime = "@now"		[Insert("@now")]
+- CreatedBy: string = "@by"			[Insert("@by")]
+- UpdatedAt?: datetime				[Update("@now")]
+- UpdatedBy?: string				[Update("@by")]
+
+## KeyEntity : IKeyEntity, @abstract
+
+## EntityBase : KeyEntity, IAtEntity, @default, @abstract
+
+## Account:
+- Email: string(256)
+- NormalizedEmail: string(256)		[UQ]
+- EmailConfirmed?: bool
+- Name: string
+- Phone?: string
+- PhoneConfirmed?: bool
+- PasswordHash?: string(256)		[DataType(DataType.Password)]
+- PasswordChangedAt?: datetime
+- AcceptTermsAt?: datetime
+
 ```

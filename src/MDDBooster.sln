@@ -5,11 +5,16 @@ VisualStudioVersion = 17.4.32916.344
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MDDBooster", "MDDBooster\MDDBooster.csproj", "{FA2E3F6B-93AD-4259-82C1-4DD0F6F06FED}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MDDBooster.Core", "MDDBooster.Core\MDDBooster.Core.csproj", "{613D35D7-7A01-4BAD-9E2D-174D86F86741}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MDDBooster.Core", "MDDBooster.Core\MDDBooster.Core.csproj", "{613D35D7-7A01-4BAD-9E2D-174D86F86741}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{F56F709E-C92F-4C69-901E-D736DC90E89A}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{B5D0F3FF-64C8-489A-BD2A-76625CAA418B}"
+	ProjectSection(SolutionItems) = preProject
+		..\README.md = ..\README.md
 	EndProjectSection
 EndProject
 Global
