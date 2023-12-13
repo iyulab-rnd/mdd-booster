@@ -13,7 +13,7 @@ A code generator that supports MDD.
 **Run**
 
 > `mdd <directory-path>` // `directory-path` Run with parameters
-> `mdd` // Current Path
+<br /> `mdd` // Current Path
 
 **Settings**
 
@@ -47,9 +47,11 @@ A code generator that supports MDD.
 ```
 
 **M3L**
+
 `tables.m3l`
 
-Samples .1
+sample #1
+
 ```
 
 ## IEntity
