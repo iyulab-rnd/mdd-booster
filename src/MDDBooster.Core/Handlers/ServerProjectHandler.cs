@@ -16,6 +16,7 @@ namespace MDDBooster.Handlers
             var projPath = Utils.ResolvePath(settings.BasePath, settings.ServerProject.Path);
             if (projPath == null) return;
 
+            // Services
             var basePath = Path.Combine(projPath, "Services_");
             if (Directory.Exists(basePath)) Directory.Delete(basePath, true);
             Directory.CreateDirectory(basePath);
@@ -31,6 +32,18 @@ namespace MDDBooster.Handlers
                 basePath);
 
             BuildGraphQL(models, settings);
+
+
+            // Controllers
+            basePath = Path.Combine(projPath, "Controller_");
+            if (Directory.Exists(basePath)) Directory.Delete(basePath, true);
+            Directory.CreateDirectory(basePath);
+
+            BuildDataController(models,
+                settings.ModelProject.Namespace,
+                settings.ServerProject.Namespace,
+                basePath);
+
 
             BuildGlobalUsings(projPath);
 
@@ -48,6 +61,13 @@ namespace MDDBooster.Handlers
         {
             logger.LogInformation("Build EntitySet");
             var builder = new EntitySetBuilder(models);
+            builder.Build(modelNS, serverNS, basePath);
+        }
+
+        private void BuildDataController(IModelMeta[] models, string modelNS, string serverNS, string basePath)
+        {
+            logger.LogInformation("Build DataController");
+            var builder = new DataControllerBuilder(models);
             builder.Build(modelNS, serverNS, basePath);
         }
 

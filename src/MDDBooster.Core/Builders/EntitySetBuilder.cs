@@ -2,7 +2,7 @@
 {
     public class EntitySetBuilder
     {
-        private IModelMeta[] models;
+        private readonly IModelMeta[] models;
 
         public EntitySetBuilder(IModelMeta[] models)
         {
