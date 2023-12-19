@@ -17,12 +17,19 @@
             foreach(var table in tables)
             {
                 var name = table.Name.ToPlural();
+                var labelText = table.Label == null ? "" : $"({table.Label})";
+                var summary = $"Get {name}{labelText} with odata query";
+                var returns = $@"{{ ""@odata.context"": ""{{host}}/$data/$metadata#{name}"", ""value"": [ {{...}} ] }}";
                 var line = $@"
+        /// <summary>
+        /// {summary}
+        /// </summary>
+        /// <returns>{returns}</returns>
         [HttpGet(""{name}"")]
         [EnableQuery]
-        public IActionResult Get{name}()
+        public IEnumerable<{table.Name}> Get{name}()
         {{
-            return Ok(data.{name});
+            return data.{name};
         }}";
                 methodLines.Add(line);
             }
