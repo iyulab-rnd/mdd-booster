@@ -35,7 +35,7 @@ namespace MDDBooster.Handlers
 
 
             // Controllers
-            basePath = Path.Combine(projPath, "Controller_");
+            basePath = Path.Combine(projPath, "Controllers_");
             if (Directory.Exists(basePath)) Directory.Delete(basePath, true);
             Directory.CreateDirectory(basePath);
 
