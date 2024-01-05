@@ -88,6 +88,7 @@ namespace MDDBooster.Handlers
 global using Microsoft.Extensions.DependencyInjection;
 global using Microsoft.EntityFrameworkCore;
 global using Microsoft.OData.ModelBuilder;
+global using Microsoft.AspNetCore.Http;
 global using GraphQL.Types;
 global using GraphQL.Resolvers;
 global using GraphQL.Instrumentation;
