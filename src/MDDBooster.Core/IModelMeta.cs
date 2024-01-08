@@ -116,6 +116,10 @@ namespace MDDBooster
             foreach (var value in values)
             {
                 var fields = value.Split(",").Select(p => p.Trim());
+                foreach(var field in fields)
+                {
+                    var column = Columns.FirstOrDefault(p => p.Name == field) ?? throw new Exception($"Cannot find column - {field}");
+                }
                 list.Add(fields.ToArray());
             }
             return list.ToArray();
