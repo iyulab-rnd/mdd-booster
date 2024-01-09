@@ -182,7 +182,7 @@ namespace MDDBooster.Builders
             {
                 var c = column;
                 var typeName = c.GetForeignKeyEntityName();
-                var pName = Utils.GetVirtualOneName((this.meta as TableMeta)!, column);
+                var pName = Utils.GetNameWithoutKey(c.Name);
 
                 string line;
                 if (column.IsNotNull())
