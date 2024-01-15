@@ -65,17 +65,7 @@ namespace MDDBooster
 
         public static string GetVirtualOneName(TableMeta table, ColumnMeta column)
         {
-            string name;
-            if (column.Name.Contains('_'))
-            {
-                name = column.Name.Left("_");
-            }
-            else
-            {
-                var fkEntityName = column.GetForeignKeyEntityName();
-                name = fkEntityName;
-            }
-
+            var name = GetNameWithoutKey(column.Name); 
             return table.Columns.Any(p => p.Name == name) ? name + "Item" : name;
         }
 

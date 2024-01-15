@@ -182,18 +182,22 @@ namespace MDDBooster.Builders
             {
                 var c = column;
                 var typeName = c.GetForeignKeyEntityName();
-                var pName = Utils.GetNameWithoutKey(c.Name);
+                var oneName = Utils.GetNameWithoutKey(column.Name);
+                if (this.Columns.Any(p => p.Name == oneName))
+                {
+                    oneName += "Item";
+                }
 
                 string line;
                 if (column.IsNotNull())
                 {
                     line = $@"[ForeignKey(nameof({c.Name}))]
-		public virtual {typeName} {pName} {{ get; set; }} = null!;";
+		public virtual {typeName} {oneName} {{ get; set; }} = null!;";
                 }
                 else
                 {
                     line = $@"[ForeignKey(nameof({c.Name}))]
-		public virtual {typeName}? {pName} {{ get; set; }}";
+		public virtual {typeName}? {oneName} {{ get; set; }}";
                 }
                 lines.Add(line);
             }
@@ -208,12 +212,21 @@ namespace MDDBooster.Builders
                 var children = table.GetChildren();
                 foreach(var child in children)
                 {
+                    var pNames = new List<string>();
                     foreach(var c in child.GetFkColumns())
                     {
                         var nm = c.GetForeignKeyEntityName();
                         if (table.Name != nm) continue;
 
                         var pName = Utils.GetVirtualManeName(child);
+                        if (pNames.Contains(pName)) continue;
+                        pNames.Add(pName);
+                    }
+
+                    if (pNames.Count == 0) continue;
+
+                    foreach(var pName in pNames)
+                    {
                         var line = $@"public virtual ICollection<{child.Name}>? {pName} {{ get; set; }}";
                         lines.Add(line);
                     }
