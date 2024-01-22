@@ -331,6 +331,19 @@ namespace MDDBooster
             }
         }
 
+        internal int? GetMaxLength()
+        {
+            if (GetSize() is string size)
+            {
+                if (int.TryParse(size, out var length))
+                    return length;
+                else
+                    return null;
+            }
+            else
+                return null;
+        }
+
         public ColumnMeta(string lineText)
         {
             var line = Functions.GetConentLine(lineText);

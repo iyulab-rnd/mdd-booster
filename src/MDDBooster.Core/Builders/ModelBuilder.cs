@@ -152,9 +152,21 @@ namespace MDDBooster.Builders
             }
 
             // MaxLength
-            if (c.GetSize() is string size && size != "max")
-            {
-                yield return $"[MaxLength({size})]";
+            if (c.GetSize() is string size)
+            {   
+                if (c.GetMaxLength() is int maxLength)
+                {
+                    yield return $"[MaxLength({maxLength})]";
+
+                    if (maxLength >= 300)
+                    {
+                        yield return $"[Multiline]";
+                    }
+                }
+                else if (size == "max")
+                {
+                    yield return $"[Multiline]";
+                }
             }
 
             if (c.UQ)
@@ -162,7 +174,8 @@ namespace MDDBooster.Builders
                 yield return $"[Unique]";
             }
 
-            if (c.GetSqlType() == "MONEY")
+            var sqlType = c.GetSqlType();
+            if (sqlType == "MONEY")
             {
                 yield return $"[Column(TypeName = \"money\")]";
             }
