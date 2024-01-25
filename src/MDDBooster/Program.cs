@@ -16,9 +16,9 @@ internal class Program
 #if DEBUG
         //args = [@"D:\data\PlotPals\mdd"];
         //args = [@"D:\data\U-Platform\mdd"];
-        args = [@"D:\data\U-Board\mdd"];
+        //args = [@"D:\data\U-Board\mdd"];
         //args = [@"D:\data\AICenter\mdd"];
-        //args = [@"D:\data\OCRProductListing\mdd"];
+        args = [@"D:\data\OCRProductListing\mdd"];
 #endif
 
         if (args.Length < 1) args = [Environment.CurrentDirectory];

@@ -438,27 +438,22 @@ namespace MDDBooster
 
         private void ParseAttribtes(string lineText)
         {
-            if (this.Name == "MemberKey")
-            {
-            }
-
             var attributes = new List<AttributeMeta>();
 
-            var m = Regex.Matches(lineText, @"\[(.*?)\]");
-            if (m.Any())
+            var m = Regex.Matches(lineText, @"\[(.*?(\(.*?\))?.*?)\]");
+            foreach (Match match in m.Cast<Match>())
             {
-                foreach(var line in m.Select(p => p.Groups[1].Value))
-                {
-                    var items = line.Split(",").Select(p => AttributeMeta.Build(p));
-                    attributes.AddRange(items);
-                }
+                var line = match.Groups[1].Value;
+                var items = line.Split(new[] { "],[" }, StringSplitOptions.None)
+                                .Select(p => p.Trim('[', ']'))
+                                .Select(p => AttributeMeta.Build(p));
+                attributes.AddRange(items);
             }
 
-            foreach(var attribute in attributes)
+            foreach (var attribute in attributes)
             {
                 if (string.Equals(attribute.Name, "FK", StringComparison.OrdinalIgnoreCase))
                     this.FK = true;
-
                 else if (string.Equals(attribute.Name, "desc", StringComparison.OrdinalIgnoreCase))
                     this.Description = attribute.Value;
             }
