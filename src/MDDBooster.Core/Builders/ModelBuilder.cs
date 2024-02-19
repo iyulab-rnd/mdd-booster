@@ -358,9 +358,9 @@ namespace {ns}.Entity
                 {
                     $"[Table(name: \"{tableName}\")]"
                 };
-                if (tableMeta.Label != tableMeta.Name)
+                if (string.IsNullOrEmpty(tableMeta.Label) != true)
                 {
-                    attributes.Add($"[DisplayName(\"{tableName}\")]");
+                    attributes.Add($"[DisplayName(\"{tableMeta.Label}\")]");
                 }
                 var attributesText = string.Join("\r\n\t", attributes);
                 code = $@"// {Constants.NO_NOT_EDIT_MESSAGE}
