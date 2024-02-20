@@ -34,10 +34,13 @@ namespace {serverNS}.Services
 {{
     public partial class EntitySetBuilder
     {{
+        partial void AddCustom(ODataConventionModelBuilder builder);
+
         public static ODataConventionModelBuilder AddAll(ODataConventionModelBuilder builder)
         {{
             var esBuilder = new EntitySetBuilder();
 {addfunc}
+            esBuilder.AddCustom(builder);
 
             return builder;
         }}
