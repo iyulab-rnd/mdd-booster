@@ -29,5 +29,15 @@ namespace MDDBooster
         {
             return line.LeftOr("#").LeftOr("//").Trim();
         }
+
+        internal static Task FileWriteAsync(string path, string contents)
+        {
+            return File.WriteAllTextAsync(path, contents.Trim());
+        }
+
+        internal static void FileWrite(string path, string contents)
+        {
+            File.WriteAllText(path, contents.Trim());
+        }
     }
 }

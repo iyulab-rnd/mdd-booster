@@ -53,7 +53,7 @@ namespace {serverNS}.Controllers
 
             var text = code.Replace("\t", "    ");
             var path = Path.Combine(basePath, $"ODataController.cs");
-            File.WriteAllText(path, text);
+            Functions.FileWrite(path, text);
         }
     }
 }

@@ -53,7 +53,7 @@ GO{nullableUniqueLinesText}";
 
             text = text.Replace("\t", "    ");
             var path = Path.Combine(basePath, $"{Name}.sql");
-            File.WriteAllText(path, text);
+            Functions.FileWrite(path, text);
         }
 
         private string[] GetUniqueLines(out string[] nullableUniqueLines)

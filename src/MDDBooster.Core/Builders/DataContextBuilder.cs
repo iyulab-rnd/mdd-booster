@@ -44,7 +44,7 @@ namespace {ns}.Services
 
             var text = code.Replace("\t", "    ");
             var path = Path.Combine(basePath, $"DataContext.cs");
-            File.WriteAllText(path, text);
+            Functions.FileWrite(path, text);
         }
 
         private static string GetOnModelCreatingText(IEnumerable<TableMeta> tables)

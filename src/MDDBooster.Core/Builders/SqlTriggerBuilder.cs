@@ -59,7 +59,7 @@ AS
 GO";
             var text = code.Replace("\t", "    ");
             var path = Path.Combine(basePath, $"{Name}Trigger.sql");
-            File.WriteAllText(path, text);
+            Functions.FileWrite(path, text);
         }
     }
 }

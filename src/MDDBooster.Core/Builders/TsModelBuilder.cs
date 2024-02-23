@@ -87,7 +87,7 @@ namespace MDDBooster.Builders
             var output = $@"{usingLinesText}export namespace {ns} {{
 
 {sb}}}";
-            await File.WriteAllTextAsync(tsFile, output);
+            await Functions.FileWriteAsync(tsFile, output);
 
             store.Add(new StoreRecord(ns, modelPath, tsFile, enumTypes, interfaces, abstracts, classes));
         }

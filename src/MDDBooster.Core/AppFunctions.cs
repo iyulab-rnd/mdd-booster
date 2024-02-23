@@ -16,7 +16,7 @@ namespace MDDBooster
             Logger?.LogInformation("Write File: {path}", Path.GetFileName(path));
 
             var text = code.Replace("\t", "    ");
-            File.WriteAllText(path, text);
+            Functions.FileWrite(path, text);
         }
     }
 }

@@ -108,7 +108,7 @@ global using {serverNS}.Services;";
             //    var text = Constants.NewLine + string.Join(Constants.NewLine, usings);
             //    code += text;
             //}
-            File.WriteAllText(filePath, code);
+            Functions.FileWrite(filePath, code);
         }
     }
 }

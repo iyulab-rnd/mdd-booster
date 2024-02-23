@@ -280,7 +280,7 @@ namespace {ns}.Entity
 }}";
             code = code.Replace("\t", "    ");
             var path = Path.Combine(basePath, $"{className}.cs");
-            File.WriteAllText(path, code);
+            Functions.FileWrite(path, code);
         }
     }
 
@@ -381,7 +381,7 @@ namespace {ns}.Entity
                 throw new NotImplementedException();
 
             var path = Path.Combine(basePath, $"{className}.cs");
-            File.WriteAllText(path, code);
+            Functions.FileWrite(path, code);
         }
 
         private static readonly List<string> enumDefinitions = new();
