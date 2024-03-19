@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <RootNamespace>MDDBooster</RootNamespace>
 	<RuntimeIdentifiers>win-x64;win-x86</RuntimeIdentifiers>
+	<Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
 
 	<ItemGroup>
