@@ -103,7 +103,7 @@ namespace MDDBooster
 
             for (int i = 0; i < input.Length; i++)
             {
-                var subString = input.Substring(i);
+                var subString = input[i..];
                 if (subString.StartsWith(begin))
                 {
                     stack.Push(i);

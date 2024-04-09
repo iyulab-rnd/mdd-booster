@@ -205,7 +205,7 @@ namespace {ns}.Gql
 
         private void BuildSchemaFieldType(string basePath, TableMeta table)
         {
-            var modelNS = settings.ModelProject.Namespace;
+            //var modelNS = settings.ModelProject.Namespace;
             var serverNS = settings.ServerProject!.Namespace;
             var entityName = table.Name;
             var entityNames = table.Name.ToPlural();
@@ -298,7 +298,7 @@ namespace {serverNS}.Gql.Schemas
 
         private void BuildSchemaGraphType(string basePath, TableMeta table)
         {
-            var modelNS = settings.ModelProject.Namespace;
+            //var modelNS = settings.ModelProject.Namespace;
             var serverNS = settings.ServerProject!.Namespace;
             var entityName = table.Name;
 
@@ -376,7 +376,7 @@ namespace {serverNS}.Gql.Schemas
 
         private void BuildSchemaRepository(string basePath, TableMeta table)
         {
-            var modelNS = settings.ModelProject.Namespace;
+            //var modelNS = settings.ModelProject.Namespace;
             var serverNS = settings.ServerProject!.Namespace;
             var entityName = table.Name;
             var entityNames = table.Name.ToPlural();

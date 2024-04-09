@@ -12,14 +12,15 @@ namespace MDDBooster
     {
         internal static TableMeta FindTable(string name)
         {
-            return Resolver.Models.OfType<TableMeta>().First(p => p.Name == name);
+            return Resolver.Models?.OfType<TableMeta>().First(p => p.Name == name) ?? throw new Exception($"cannot find table - {name}");
         }
 
         internal static IEnumerable<TableMeta> FindChildren(TableMeta table)
         {
-            return Resolver.Models.OfType<TableMeta>()
+            return Resolver.Models?.OfType<TableMeta>()
                 .Where(p => p != table
-                    && p.Columns.Any(n => n.FK && n.GetForeignKeyEntityName() == table.Name));
+                    && p.Columns.Any(n => n.FK && n.GetForeignKeyEntityName() == table.Name))
+                ?? throw new Exception($"cannot find children - {table.Name}");
         }
 
         /// <summary>

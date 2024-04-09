@@ -34,13 +34,13 @@ namespace MDDBooster
             }
 
             paths.Insert(0, cd.ToString());
-            var dir = new DirectoryInfo(Path.Combine(paths.ToArray()));
+            var dir = new DirectoryInfo(Path.Combine([.. paths]));
             return dir.ToString();
         }
 
         internal static bool IsInterfaceName(string name)
         {
-            return name.StartsWith("I") && Char.IsUpper(name[1]);
+            return name.StartsWith('I') && char.IsUpper(name[1]);
         }
 
         internal static bool IsAbstract(string headline)

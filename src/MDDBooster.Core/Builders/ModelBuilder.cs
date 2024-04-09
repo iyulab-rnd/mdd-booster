@@ -9,7 +9,7 @@ namespace MDDBooster.Builders
         {
         }
 
-        protected static Settings.Settings Settings => Resolver.Settings;
+        protected static Settings.Settings Settings => Resolver.Settings ?? throw new InvalidOperationException("Settings is null.");
 
         protected string[] OutputPropertyLines(ColumnMeta c)
         {
@@ -107,10 +107,10 @@ namespace MDDBooster.Builders
                 lines.Add(line);
             }
 
-            return lines.ToArray();
+            return [.. lines];
         }
 
-        private static readonly string[] ignoreAttributeName = new string[] { "PK", "Unique", "UQ", "UI", "FK", "Index", "desc" };
+        private static readonly string[] ignoreAttributeName = ["PK", "Unique", "UQ", "UI", "FK", "Index", "desc"];
         private static IEnumerable<string> BuildAttributesLines(ColumnMeta c)
         {
             if (c.Name == "Cost")
@@ -313,12 +313,12 @@ namespace {ns}.Entity
             var tableName = Name;
 
             var baseEntities = meta.Abstract == null
-                ? Array.Empty<string>()
+                ? []
                 : new string[] { meta.Abstract.Name };
 
             if (meta.Interfaces != null)
             {
-                baseEntities = baseEntities.Concat(meta.Interfaces.Select(p => p.Name)).ToArray();
+                baseEntities = [.. baseEntities, .. meta.Interfaces.Select(p => p.Name)];
             }
 
             if (meta.Extensions != null)
@@ -327,7 +327,7 @@ namespace {ns}.Entity
                 {
                     if (baseEntities.Contains(extension)) continue;
 
-                    baseEntities = baseEntities.Append(extension).ToArray();
+                    baseEntities = [.. baseEntities, extension];
                 }
             }
 
@@ -384,7 +384,7 @@ namespace {ns}.Entity
             Functions.FileWrite(path, code);
         }
 
-        private static readonly List<string> enumDefinitions = new();
+        private static readonly List<string> enumDefinitions = [];
 
         private string? GetEnumSyntax()
         {
@@ -407,7 +407,7 @@ namespace {ns}.Entity
                 }
             }
 
-            if (list.Any())
+            if (list.Count != 0)
                 return $"{Constants.NewLine}\t{string.Join(Constants.NewLine + Constants.NewLine, list)}{Constants.NewLine}";
 
             else

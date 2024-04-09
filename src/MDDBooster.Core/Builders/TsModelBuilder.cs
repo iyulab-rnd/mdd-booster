@@ -28,14 +28,20 @@ namespace MDDBooster.Builders
             IEnumerable<ClassUnit> classes);
 #pragma warning restore IDE1006 // Naming Styles
 
-        private static readonly List<StoreRecord> store = new();
+        private static readonly List<StoreRecord> store = [];
 
-        private IEnumerable<InterfaceUnit> interfaces = Enumerable.Empty<InterfaceUnit>();
-        private IEnumerable<ClassUnit> abstracts = Enumerable.Empty<ClassUnit>();
-        private IEnumerable<ClassUnit> classes = Enumerable.Empty<ClassUnit>();
+        private IEnumerable<InterfaceUnit> interfaces = [];
+        private IEnumerable<ClassUnit> abstracts = [];
+        private IEnumerable<ClassUnit> classes = [];
 
         internal async Task BuildAsync(string ns, string modelPath, string tsFile)
         {
+            if (Directory.Exists(modelPath) != true)
+            {
+                Console.WriteLine($"cannot find directory - {modelPath}");
+                return;
+            }
+
             var handlers = new List<CsCodeUnit>();
             foreach (var file in Directory.GetFiles(modelPath))
             {
@@ -142,9 +148,9 @@ namespace MDDBooster.Builders
                 }
                 
                 string tsType;
-                if (typeMap.ContainsKey(type))
+                if (typeMap.TryGetValue(type, out string? value))
                 {
-                    tsType = typeMap[type];
+                    tsType = value;
                     comment += $" // {type}";
                 }
                 else
@@ -156,10 +162,10 @@ namespace MDDBooster.Builders
                 {
                     typeName = tsType.GetBetween("<", ">");
 
-                    if (typeMap.ContainsKey(typeName))
+                    if (typeMap.TryGetValue(typeName, out string? cachedTypeName))
                     {
                         comment += $" // {typeName}";
-                        typeName = typeMap[typeName];
+                        typeName = cachedTypeName;
                     }
                     var m = FindModel(typeName);
                     if (m.Item1 != null)
