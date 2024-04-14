@@ -64,15 +64,36 @@ namespace Microsoft.CodeAnalysis.CSharp.Units
                     {
                         Name = @interface.Identifier.ValueText,
                         Properties = @interface.Members.OfType<PropertyDeclarationSyntax>().Select(p => 
-                            new PropertyUnit 
-                            { 
-                                Name = p.Identifier.ValueText, 
-                                Type = p.Type.ToString().Replace("?", ""),
-                                IsRequired = p.ToString().Contains("required"),
-                                IsNullable = p.Type is NullableTypeSyntax
-                            })
+                            BuildProperty(
+                                type: p.Type, 
+                                name: p.Identifier.ValueText, 
+                                isRequired: p.ToString().Contains("required")))
                     };
                     InterfaceUnits.Add(interfaceUnit);
+                }
+                else if (member is FileScopedNamespaceDeclarationSyntax @fileScopedNamespace)
+                {
+                    Parse(@fileScopedNamespace, @fileScopedNamespace.Members);
+                }
+                else if (member is RecordDeclarationSyntax @record)
+                {
+                    var classUnit = new ClassUnit
+                    {
+                        Name = @record.Identifier.ValueText,
+                        Properties = @record.ParameterList!.Parameters.OfType<ParameterSyntax>().Select(p => 
+                            BuildProperty(
+                                type: p.Type!,
+                                name: p.Identifier.ValueText,
+                                isRequired: p.ToString().Contains("required")))
+                    };
+                    if (classUnit.IsAbstract)
+                    {
+                        AbstractUnits.Add(classUnit);
+                    }
+                    else
+                    {
+                        ClassUnits.Add(classUnit);
+                    }
                 }
                 else
                 {
@@ -83,10 +104,51 @@ namespace Microsoft.CodeAnalysis.CSharp.Units
             }
         }
 
-        public List<EnumUnit> EnumUnits { get; } = new List<EnumUnit>();
-        public List<InterfaceUnit> InterfaceUnits { get; } = new List<InterfaceUnit>();
-        public List<ClassUnit> AbstractUnits { get; } = new List<ClassUnit>();
-        public List<ClassUnit> ClassUnits { get; } = new List<ClassUnit>();
+        private PropertyUnit BuildProperty(TypeSyntax type, string name, bool isRequired)
+        {
+            if (type is IdentifierNameSyntax)
+            {
+                var enumName = type.ToString();
+                var enumUnit = EnumUnits.FirstOrDefault(p => p.Name == enumName);
+                if (enumUnit == null)
+                {
+                    var unit = new PropertyUnit
+                    {
+                        Name = name,
+                        Type = "string",
+                        IsRequired = isRequired,
+                        IsNullable = type is NullableTypeSyntax
+                    };
+                    return unit;
+                }
+                else
+                {
+                    return new PropertyUnit
+                    {
+                        Name = name,
+                        Type = enumName,
+                        IsRequired = isRequired,
+                        IsNullable = type is NullableTypeSyntax
+                    };
+                }
+            }
+            else
+            {
+                var unit = new PropertyUnit
+                {
+                    Name = name,
+                    Type = type!.ToString().Replace("?", ""),
+                    IsRequired = isRequired,
+                    IsNullable = type is NullableTypeSyntax
+                };
+                return unit;
+            }
+        }
+
+        public List<EnumUnit> EnumUnits { get; } = [];
+        public List<InterfaceUnit> InterfaceUnits { get; } = [];
+        public List<ClassUnit> AbstractUnits { get; } = [];
+        public List<ClassUnit> ClassUnits { get; } = [];
     }
 
     public class EnumUnit
@@ -117,7 +179,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Units
     {
         public required string Name { get; set; }
         public required IEnumerable<PropertyUnit> Properties { get; set; }
-        public IEnumerable<string> Inherits { get; set; } = Enumerable.Empty<string>();
+        public IEnumerable<string> Inherits { get; set; } = [];
         public IEnumerable<string> GetPropertyNames()
         {
             return Properties.Select(p => p.Name);
@@ -132,7 +194,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Units
     {
         public bool IsAbstract { get; set; }
         public bool IsGeneric { get; set; }
-        public IEnumerable<string> GenericTypeNames { get; set; } = Enumerable.Empty<string>();
+        public IEnumerable<string> GenericTypeNames { get; set; } = [];
     }
 
     public class PropertyUnit

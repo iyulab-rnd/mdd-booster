@@ -13,7 +13,7 @@ namespace MDDBooster.Settings
         public required string NS { get; set; }
         public required string ModelPath { get; set; }
 
-        [JsonPropertyName("ts-file")]
-        public required string TsFile { get; set; }
+        [JsonPropertyName("ts-file")] public required string TsFile { get; set; }
+        [JsonPropertyName("model-files")] public IEnumerable<string>? ModelFiles { get; set; }
     }
 }

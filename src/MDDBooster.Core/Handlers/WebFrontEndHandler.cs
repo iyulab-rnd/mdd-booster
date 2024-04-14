@@ -29,8 +29,13 @@ namespace MDDBooster.Handlers
             var modelPath = Utils.ResolvePath(settings.BasePath, m.ModelPath);
             var tsFile = Utils.ResolvePath(settings.BasePath, m.TsFile);
 
+            var modelFiles = System.IO.Directory.GetFiles(modelPath, "*.cs");
+
+            var extFiles = (m.ModelFiles ?? []).Select(p => Utils.ResolvePath(settings.BasePath, p));
+            modelFiles = [.. modelFiles, .. extFiles];
+
             var builder = new TsModelBuilder();
-            return builder.BuildAsync(m.NS, modelPath, tsFile);
+            return builder.BuildAsync(m.NS, modelFiles, tsFile);
         }
     }
 }
