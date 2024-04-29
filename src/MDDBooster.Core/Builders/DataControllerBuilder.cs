@@ -37,16 +37,15 @@
             var methodLinesText = string.Join(Environment.NewLine, methodLines);
 
             var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
-
 using Iyu.Server.OData.Controllers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData.Query;
 
 namespace {serverNS}.Controllers
 {{
-    public partial class ODataController(IDataContext data) : ODataControllerBase
+    public partial class ODataController(IDataContext data) : ODataControllerBase(data)
     {{
-        protected readonly DataContext data = (DataContext)data;
+        new protected readonly DataContext data = (DataContext)data;
 {methodLinesText}
     }}
 }}";
