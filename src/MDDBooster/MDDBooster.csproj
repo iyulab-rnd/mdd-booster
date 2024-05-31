@@ -11,7 +11,7 @@
 		<RepositoryUrl>https://github.com/iyulab-rnd/mdd-booster</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageTags>sideblue</PackageTags>
-		
+		<PackageIconUrl>https://raw.githubusercontent.com/iyulab-rnd/public/main/images/iyulab_128.png</PackageIconUrl>
 		<PackAsTool>true</PackAsTool>
 		<ToolCommandName>mdd</ToolCommandName>
 		<PackageOutputPath>./nupkg</PackageOutputPath>
