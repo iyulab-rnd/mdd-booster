@@ -8,9 +8,10 @@
 		<PackageId>MDD-Booster</PackageId>
 		<Authors>side-blue</Authors>
 		<Description>Code generation tool that supports M3L.</Description>
-		<RepositoryUrl>https://github.com/iyulab-rnd/mdd-booster</RepositoryUrl>
+	    <PackageProjectUrl>https://github.com/iyulab-rnd/mdd-booster</PackageProjectUrl>
+	    <RepositoryUrl>https://github.com/iyulab-rnd/mdd-booster.git</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
-		<PackageTags>sideblue</PackageTags>
+		<PackageTags>sideblue,mdd</PackageTags>
 		<PackageIconUrl>https://raw.githubusercontent.com/iyulab-rnd/public/main/images/iyulab_128.png</PackageIconUrl>
 		<PackAsTool>true</PackAsTool>
 		<ToolCommandName>mdd</ToolCommandName>
