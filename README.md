@@ -46,7 +46,7 @@ A code generator that supports MDD.
 }
 ```
 
-**M3L**
+## M3L
 
 `tables.m3l`
 
@@ -80,4 +80,11 @@ sample #1
 - PasswordChangedAt?: datetime
 - AcceptTermsAt?: datetime
 
+```
+
+### Foriegn Key
+
+```
+- Plan_key: guid
+- Account_key: guid [FK: Account._key, ON DELETE NO ACTION]
 ```

@@ -16,12 +16,7 @@ internal class Program
         var stopwatch = Stopwatch.StartNew();
 
 #if DEBUG
-        //args = [@"D:\data\PlotPals\mdd"];
-        //args = [@"D:\data\U-Platform\mdd"];
-        //args = [@"D:\data\U-Board\mdd"];
-        //args = [@"D:\data\AICenter\mdd"];
-        //args = [@"D:\data\OCRProductListing\mdd"];
-        args = [@"D:\data\larvalues\mdd"];
+        args = [@"D:\data\Plands\mdd"];
 #endif
 
         if (args.Length < 1) args = [Environment.CurrentDirectory];

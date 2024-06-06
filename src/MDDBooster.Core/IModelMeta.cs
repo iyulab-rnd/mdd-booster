@@ -571,8 +571,8 @@ namespace MDDBooster
         {
             if (LineText.Contains("FK:"))
             {
-                var s = LineText.GetBetween("FK:", ")");
-                return s.Contains(',') ? s.Right(",") : null;
+                var s = LineText.GetBetween("FK:", "]");
+                return s.Contains(',') ? s.Right(",").Trim() : null;
             }
             else
                 return null;
