@@ -4,14 +4,14 @@
 		<TargetFramework>net8.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>1.0.2</Version>
+		<Version>1.0.3</Version>
 		<PackageId>MDD-Booster</PackageId>
-		<Authors>side-blue</Authors>
+		<Authors>iyulab</Authors>
 		<Description>Code generation tool that supports M3L.</Description>
 	    <PackageProjectUrl>https://github.com/iyulab-rnd/mdd-booster</PackageProjectUrl>
 	    <RepositoryUrl>https://github.com/iyulab-rnd/mdd-booster.git</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
-		<PackageTags>sideblue,mdd</PackageTags>
+		<PackageTags>mdd</PackageTags>
 		<PackageIconUrl>https://raw.githubusercontent.com/iyulab-rnd/public/main/images/iyulab_128.png</PackageIconUrl>
 		<PackAsTool>true</PackAsTool>
 		<ToolCommandName>mdd</ToolCommandName>
