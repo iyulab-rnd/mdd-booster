@@ -136,7 +136,7 @@ namespace MDDBooster.Builders
                 if (attr != null && attr.Value != null)
                 {
                     typeName = attr.Value.LeftOr(".");
-                    propName = attr.Value.Right(".");
+                    propName = attr.Value.Right(".").LeftOr(",").Trim();
                 }
                 else
                 {
