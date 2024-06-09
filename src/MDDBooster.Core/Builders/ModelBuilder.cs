@@ -196,7 +196,7 @@ namespace MDDBooster.Builders
                 var c = column;
                 var typeName = c.GetForeignKeyEntityName();
                 var oneName = Utils.GetNameWithoutKey(column.Name);
-                if (this.Columns.Any(p => p.Name == oneName))
+                if (this.Columns.Any(p => p.Name == oneName) || oneName == this.Name)
                 {
                     oneName += "Item";
                 }
