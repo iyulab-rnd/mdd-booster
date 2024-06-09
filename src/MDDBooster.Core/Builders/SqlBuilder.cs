@@ -97,17 +97,10 @@ GO{nullableUniqueLinesText}";
         private object OutputFKLine(ColumnMeta c)
         {
             string fkTable, cName;
-            if (c.Name.Contains('_'))
-            {
-                fkTable = c.Name.Left("_");
-                cName = c.Name.Right("_", true);
-            }
-            else
-            {
-                var m = Functions.FindTable(c.GetForeignKeyEntityName());
-                fkTable = m.Name;
-                cName =  m.GetPKColumn().Name;
-            }
+            
+            var m = Functions.FindTable(c.GetForeignKeyEntityName());
+            fkTable = m.Name;
+            cName = m.GetPKColumn().Name;
 
             var option = c.GetForeignKeyOption();
             var onSyntax = option == null
