@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
@@ -50,6 +51,48 @@ namespace {ns}.Services
         private static string GetOnModelCreatingText(IEnumerable<TableMeta> tables)
         {
             var sb = new StringBuilder();
+            sb.AppendLine(BuildOneWithManyByFKLines(tables));
+            sb.AppendLine(BuildEntityToTableLines(tables));
+            return sb.ToString();
+        }
+
+        private static string BuildOneWithManyByFKLines(IEnumerable<TableMeta> tables)
+        {
+            var sb = new StringBuilder();
+
+            foreach (var table in tables)
+            {
+                foreach (var column in table.Columns)
+                {
+                    if (column.FK)
+                    {
+                        var constants = column.LineText.RegexReturn("ON DELETE (.*?)]", 1);
+                        if (constants == "NO ACTION")
+                        {
+                            var entityName = table.Name;
+                            var keyName = column.Name;
+
+                            //var typeName = column.GetForeignKeyEntityName();
+                            var oneName = Utils.GetNameWithoutKey(column.Name);
+
+                            var line = $@"
+            modelBuilder.Entity<{entityName}>()
+                .HasOne(p => p.{oneName})
+                .WithMany()
+                .HasForeignKey(p => p.{keyName})
+                .OnDelete(DeleteBehavior.NoAction);";
+                            sb.AppendLine(line);
+                        }
+                    }
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        private static string BuildEntityToTableLines(IEnumerable<TableMeta> tables)
+        {
+            var sb = new StringBuilder();
             foreach (var table in tables)
             {
                 if (table.GetChildren().Any())
@@ -86,7 +129,7 @@ namespace {ns}.Services
 
                         //var pName = Utils.GetNameWithoutKey(column.Name);
                         //var byName = Utils.GetVirtualManeName(table, null, null);
-                        
+
                         /*
                                     // CommonCodeGroup에서 GroupCode를 대체 키로 설정
 

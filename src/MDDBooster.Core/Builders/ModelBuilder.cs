@@ -145,10 +145,14 @@ namespace MDDBooster.Builders
 
                 if (propName == "_id" || propName == "_key") propName = null;
 
+                var fkText = c.LineText.GetBetween("[FK", "]", false, include: true);
+                var fkConstants = fkText.GetBetween(",", "]").Trim();
+                var fkConstantsText = string.IsNullOrWhiteSpace(fkConstants) ? string.Empty : $", Constants = \"{fkConstants}\"";
+
                 if (string.IsNullOrEmpty(propName))
-                    yield return $"[FK(typeof({typeName}))]";
+                    yield return $"[FK(typeof({typeName}){fkConstantsText})]";
                 else
-                    yield return $"[FK(typeof({typeName}), PropertyName = nameof(Entity.{typeName}.{propName}))]";
+                    yield return $"[FK(typeof({typeName}), PropertyName = nameof(Entity.{typeName}.{propName}){fkConstantsText})]";
             }
 
             // MaxLength

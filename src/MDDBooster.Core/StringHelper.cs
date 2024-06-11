@@ -76,16 +76,24 @@ namespace MDDBooster
         /// begin, end 사이의 값을 가져옵니다.
         /// begin이후 가장 빠른 end 를 찾습니다.
         /// </summary>
-        public static string GetBetween(this string input, string begin, string end, bool last = false)
+        public static string GetBetween(this string input, string begin, string end, bool last = false, bool include = false)
         {
             var first = last
                 ? input.LastIndexOf(begin)
                 : input.IndexOf(begin);
 
-            if (first < 0) return String.Empty;
+            if (first < 0) return string.Empty;
 
             var s = first >= 0 ? first + begin.Length : 0;
             var e = input.IndexOf(end, s);
+
+            if (e < 0) return string.Empty;
+
+            if (include)
+            {
+                s = first;
+                e += end.Length;
+            }
 
             var r = e > 0 ? input[s..e] : input[s..];
             return r;
