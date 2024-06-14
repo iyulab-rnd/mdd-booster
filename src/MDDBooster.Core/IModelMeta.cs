@@ -13,13 +13,20 @@ namespace MDDBooster
     {
         public static string[] GetInherits(this IModelMeta meta)
         {
-            return meta.Headline
-                .Right(":")
-                .Split(",")
-                .Where(p => p.Length > 0)
-                .Select(p => p.Trim())
-                .Where(n => n[0] >= 'A' && n[0] <= 'Z')
-                .ToArray();
+            if (meta is ModelMetaBase modelMeta)
+            {
+                return modelMeta.Inherits?.Split(",").Select(p => p.Trim()).ToArray() ?? [];
+            }
+            else
+            {
+                return meta.Headline
+                    .Right(":")
+                    .Split(",")
+                    .Where(p => p.Length > 0)
+                    .Select(p => p.Trim())
+                    .Where(n => n[0] >= 'A' && n[0] <= 'Z')
+                    .ToArray();
+            }
         }
     }
 
@@ -30,6 +37,7 @@ namespace MDDBooster
         public string Body { get; }
 
         public string[] Extensions { get; internal set; }
+        public string? Inherits { get; }
         public InterfaceMeta[]? Interfaces { get; internal set; }
         public AbstractMeta? Abstract { get; internal set; }
         public string? AbstractName 
@@ -52,10 +60,26 @@ namespace MDDBooster
             if (headline.Right(":") is string right && right.Length > 0)
             {
                 var line = Functions.GetConentLine(right);
-                this.Extensions = line.Split(",")
-                    .Select(p => p.Trim())
-                    .Where(p => p.StartsWith("@") != true)
-                    .ToArray();
+                var extensions = new List<string>();
+                var interfaces = new List<string>();
+
+                string? inherits = null;
+                foreach(var item in line.Split(","))
+                {
+                    var itemName = item.Trim();
+                    if (itemName[0] >= 'A' && itemName[0] <= 'Z')
+                    {
+                        if (itemName.StartsWith("@"))
+                            extensions.Add(itemName);
+                        else if (itemName.StartsWith("I"))
+                            interfaces.Add(itemName);
+                        else
+                            inherits = itemName;
+                    }
+                }
+
+                this.Extensions = [.. extensions];
+                this.Inherits = inherits;
             }
         }
 

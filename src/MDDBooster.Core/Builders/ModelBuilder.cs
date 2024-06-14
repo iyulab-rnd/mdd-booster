@@ -335,11 +335,13 @@ namespace {ns}.Entity
                 }
             }
 
-            var baseText = string.Join(", ", baseEntities);
+            var inheritsText = string.IsNullOrEmpty(this.meta.Inherits)
+                ? string.Join(", ", baseEntities)
+                : this.meta.Inherits;
 
-            var baseLine = string.IsNullOrWhiteSpace(baseText)
+            var baseLine = string.IsNullOrWhiteSpace(inheritsText)
                 ? $" : IEntity"
-                : $" : {baseText}";
+                : $" : {inheritsText}";
 
             var enumSyntax = GetEnumSyntax();
 

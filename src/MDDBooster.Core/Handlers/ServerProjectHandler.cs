@@ -33,7 +33,6 @@ namespace MDDBooster.Handlers
 
             BuildGraphQL(models, settings);
 
-
             // Controllers
             basePath = Path.Combine(projPath, "Controllers_");
             if (Directory.Exists(basePath)) Directory.Delete(basePath, true);
@@ -43,7 +42,6 @@ namespace MDDBooster.Handlers
                 settings.ModelProject.Namespace,
                 settings.ServerProject.Namespace,
                 basePath);
-
 
             BuildGlobalUsings(projPath);
 
