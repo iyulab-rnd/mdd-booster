@@ -39,31 +39,26 @@ namespace MDDBooster
 
             models.OfType<ModelMetaBase>().ToList().ForEach(p =>
             {
-                var mainNames = p.GetInterfaceOrInherits();
-
                 var interfaces = new List<InterfaceMeta>();
                 AbstractMeta? abstractMeta = null;
 
-                foreach (var mainName in mainNames)
+                foreach(var interfaceName in p.InterfaceNames)
                 {
-                    var m = models.FirstOrDefault(p => p.Name == mainName);
-                    if (m == null)
-                    {
-                        p.AbstractName = mainName;
-                        continue;
-                    }
+                    var m = models.FirstOrDefault(p => p.Name == interfaceName);
 
                     if (m is InterfaceMeta interfaceMeta)
                         interfaces.Add(interfaceMeta);
-
-                    else if (m is AbstractMeta mAbs)
-                    {
-                        if (abstractMeta != null) throw new Exception("두개이상의 추상클래스는 부여 할 수 없습니다.");
-
-                        abstractMeta = mAbs;
-                    }
                     else
-                        throw new NotImplementedException();
+                        interfaces.Add(new InterfaceMeta(interfaceName, string.Empty, string.Empty));
+                }
+
+                if (string.IsNullOrEmpty(p.AbstractName) != true)
+                {
+                    var m = models.FirstOrDefault(m => m.Name == p.AbstractName);
+                    if (m is AbstractMeta mAbs)
+                        abstractMeta = mAbs;
+                    else
+                        throw new NotImplementedException(p.AbstractName);
                 }
 
                 p.Interfaces = [.. interfaces];

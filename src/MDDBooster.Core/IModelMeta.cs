@@ -33,10 +33,13 @@ namespace MDDBooster
         public string[] Extensions { get; internal set; }
         public InterfaceMeta[]? Interfaces { get; internal set; }
         public AbstractMeta? Abstract { get; internal set; }
+
+        public string[] InterfaceNames { get; private set; } = [];
+
         public string? AbstractName 
         { 
             get => abstractName ?? Abstract?.Name; 
-            set => abstractName = value; 
+            private set => abstractName = value; 
         }
 
         protected ModelMetaBase(string name, string headline, string body)
@@ -54,15 +57,22 @@ namespace MDDBooster
             {
                 var line = Functions.GetConentLine(right);
                 var extensions = new List<string>();
-                
+                var interfaces = new List<string>();
                 foreach(var item in line.Split(","))
                 {
                     var itemName = item.Trim();
                     if (itemName.StartsWith('@'))
                         extensions.Add(itemName);
+
+                    else if (itemName.StartsWith('I') && itemName[1] >= 'A' && itemName[1] <= 'Z')
+                        interfaces.Add(itemName);
+
+                    else
+                        AbstractName = itemName;
                 }
 
                 this.Extensions = [.. extensions];
+                this.InterfaceNames = [.. interfaces];
             }
         }
 

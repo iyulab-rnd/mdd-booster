@@ -352,13 +352,12 @@ namespace {ns}.Entity
                 }
             }
 
-            var inheritsText = string.IsNullOrEmpty(this.meta.AbstractName)
-                ? string.Join(", ", baseEntities)
-                : this.meta.AbstractName;
+            var inheritsAndInterfaces = baseEntities.Where(p => p.StartsWith('@') != true);
+            var baseText = string.Join(", ", inheritsAndInterfaces);
 
-            var baseLine = string.IsNullOrWhiteSpace(inheritsText)
-                ? $" : IEntity"
-                : $" : {inheritsText}";
+            var baseLine = string.IsNullOrWhiteSpace(baseText)
+                ? string.Empty
+                : $" : {baseText}";
 
             var enumSyntax = GetEnumSyntax();
 
