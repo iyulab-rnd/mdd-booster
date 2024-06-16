@@ -39,17 +39,17 @@ namespace MDDBooster
 
             models.OfType<ModelMetaBase>().ToList().ForEach(p =>
             {
-                var inherits = p.GetInherits();
+                var mainNames = p.GetInterfaceOrInherits();
 
                 var interfaces = new List<InterfaceMeta>();
                 AbstractMeta? abstractMeta = null;
 
-                foreach (var inheritName in inherits)
+                foreach (var mainName in mainNames)
                 {
-                    var m = models.FirstOrDefault(p => p.Name == inheritName);
+                    var m = models.FirstOrDefault(p => p.Name == mainName);
                     if (m == null)
                     {
-                        p.AbstractName = inheritName;
+                        p.AbstractName = mainName;
                         continue;
                     }
 

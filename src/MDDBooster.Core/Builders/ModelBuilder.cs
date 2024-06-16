@@ -111,6 +111,7 @@ namespace MDDBooster.Builders
         }
 
         private static readonly string[] ignoreAttributeName = ["PK", "Unique", "UQ", "UI", "FK", "Index", "desc"];
+        
         private static IEnumerable<string> BuildAttributesLines(ColumnMeta c)
         {
             if (c.Name == "Cost")
@@ -171,6 +172,18 @@ namespace MDDBooster.Builders
                 {
                     yield return $"[Multiline]";
                 }
+                else if (System.Text.RegularExpressions.Regex.IsMatch(size, @"^\d+,\d+$"))
+                {
+                    var parts = size.Split(',');
+                    if (parts.Length == 2 && int.TryParse(parts[0], out int precision) && int.TryParse(parts[1], out int scale))
+                    {
+                        yield return $@"[DisplayFormat(DataFormatString = ""{{0:F{scale}}}"")]";
+                    }
+                    else
+                    {
+                        throw new FormatException("Invalid size format.");
+                    }
+                }
             }
 
             if (c.UQ)
@@ -179,12 +192,16 @@ namespace MDDBooster.Builders
             }
 
             var sqlType = c.GetSqlType();
-            if (sqlType == "MONEY")
+            if (c.GetSize() is string s && s.Length > 0)
             {
-                yield return $"[Column(TypeName = \"money\")]";
+                yield return $"[Column(TypeName = \"{sqlType.ToLower()}({s.ToLower()})\")]";
+            }
+            else
+            {
+                yield return $"[Column(TypeName = \"{sqlType.ToLower()}\")]";
             }
 
-            foreach(var attribute in c.Attributes)
+            foreach (var attribute in c.Attributes)
             {
                 if (ignoreAttributeName.Contains(attribute.Name)) continue;
 
@@ -335,9 +352,9 @@ namespace {ns}.Entity
                 }
             }
 
-            var inheritsText = string.IsNullOrEmpty(this.meta.Inherits)
+            var inheritsText = string.IsNullOrEmpty(this.meta.AbstractName)
                 ? string.Join(", ", baseEntities)
-                : this.meta.Inherits;
+                : this.meta.AbstractName;
 
             var baseLine = string.IsNullOrWhiteSpace(inheritsText)
                 ? $" : IEntity"

@@ -1,4 +1,5 @@
 ﻿using System.Text.RegularExpressions;
+using System.Xml.Linq;
 
 namespace MDDBooster
 {
@@ -11,22 +12,15 @@ namespace MDDBooster
 
     public static class ModelMetaExtensions
     {
-        public static string[] GetInherits(this IModelMeta meta)
+        public static string[] GetInterfaceOrInherits(this IModelMeta meta)
         {
-            if (meta is ModelMetaBase modelMeta)
-            {
-                return modelMeta.Inherits?.Split(",").Select(p => p.Trim()).ToArray() ?? [];
-            }
-            else
-            {
-                return meta.Headline
-                    .Right(":")
-                    .Split(",")
-                    .Where(p => p.Length > 0)
-                    .Select(p => p.Trim())
-                    .Where(n => n[0] >= 'A' && n[0] <= 'Z')
-                    .ToArray();
-            }
+            return meta.Headline
+                .Right(":")
+                .Split(",")
+                .Where(p => p.Length > 0)
+                .Select(p => p.Trim())
+                .Where(n => n[0] >= 'A' && n[0] <= 'Z')
+                .ToArray();
         }
     }
 
@@ -37,7 +31,6 @@ namespace MDDBooster
         public string Body { get; }
 
         public string[] Extensions { get; internal set; }
-        public string? Inherits { get; }
         public InterfaceMeta[]? Interfaces { get; internal set; }
         public AbstractMeta? Abstract { get; internal set; }
         public string? AbstractName 
@@ -61,25 +54,15 @@ namespace MDDBooster
             {
                 var line = Functions.GetConentLine(right);
                 var extensions = new List<string>();
-                var interfaces = new List<string>();
-
-                string? inherits = null;
+                
                 foreach(var item in line.Split(","))
                 {
                     var itemName = item.Trim();
-                    if (itemName[0] >= 'A' && itemName[0] <= 'Z')
-                    {
-                        if (itemName.StartsWith("@"))
-                            extensions.Add(itemName);
-                        else if (itemName.StartsWith("I"))
-                            interfaces.Add(itemName);
-                        else
-                            inherits = itemName;
-                    }
+                    if (itemName.StartsWith('@'))
+                        extensions.Add(itemName);
                 }
 
                 this.Extensions = [.. extensions];
-                this.Inherits = inherits;
             }
         }
 
@@ -153,7 +136,8 @@ namespace MDDBooster
 
         internal ColumnMeta GetPKColumn()
         {
-            return this.FullColumns.First(p => p.PK);
+            var pkColumn = this.FullColumns.FirstOrDefault(p => p.PK);
+            return pkColumn == null ? throw new Exception($"Cannot find PK Column - {this.Name}") : pkColumn;
         }
     }
 
@@ -426,13 +410,16 @@ namespace MDDBooster
                 this.Default = defaultText.Trim();
             }
 
-            if (line.GetBetween($"{DataType}(", ")") is string s)
+            if (DataType != "enum" && line.GetBetween($"{DataType}(", ")") is string s && s.Length > 0)
             {
                 if (int.TryParse(s, out var size))
                     Size = size.ToString();
 
                 else if (s.Equals("max", StringComparison.OrdinalIgnoreCase))
                     Size = "max";
+
+                else if (Regex.IsMatch(s, @"[0-9,]+"))
+                    Size = s;
             }
 
             ParseOptions(lineText);
