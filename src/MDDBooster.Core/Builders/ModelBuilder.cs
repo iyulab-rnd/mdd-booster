@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Data.Common;
 using System.Text;
 
 namespace MDDBooster.Builders
@@ -194,11 +195,11 @@ namespace MDDBooster.Builders
             var sqlType = c.GetSqlType();
             if (c.GetSize() is string s && s.Length > 0)
             {
-                yield return $"[Column(TypeName = \"{sqlType.ToLower()}({s.ToLower()})\")]";
+                yield return $"[Column(\"{c.Name}\", TypeName = \"{sqlType.ToLower()}({s.ToLower()})\")]";
             }
             else
             {
-                yield return $"[Column(TypeName = \"{sqlType.ToLower()}\")]";
+                yield return $"[Column(\"{c.Name}\", TypeName = \"{sqlType.ToLower()}\")]";
             }
 
             foreach (var attribute in c.Attributes)
@@ -246,23 +247,40 @@ namespace MDDBooster.Builders
                 var children = table.GetChildren();
                 foreach(var child in children)
                 {
-                    var pNames = new List<string>();
-                    foreach(var c in child.GetFkColumns())
+                    var fkColumns = child.GetFkColumns().Where(p => p.GetForeignKeyEntityName() == table.Name);
+                    if (fkColumns.Any())
                     {
-                        var nm = c.GetForeignKeyEntityName();
-                        if (table.Name != nm) continue;
+                        if (fkColumns.Count() == 1)
+                        {
+                            var fkColumn = fkColumns.First();
+                            var name = Utils.GetNameWithoutKey(fkColumn.Name);
+                            var propertyName = child.Name.ToPlural();
 
-                        var pName = Utils.GetVirtualManeName(child);
-                        if (pNames.Contains(pName)) continue;
-                        pNames.Add(pName);
-                    }
+                            var line = $@"public virtual ICollection<{child.Name}>? {propertyName} {{ get; set; }}";
+                            lines.Add(line);
+                        }
+                        else
+                        {
+                            foreach (var fkColumn in fkColumns)
+                            {
+                                var nm = fkColumn.GetForeignKeyEntityName();
+                                if (table.Name != nm) continue;
 
-                    if (pNames.Count == 0) continue;
+                                var name = Utils.GetNameWithoutKey(fkColumn.Name);
+                                var propertyName = name.ToPlural();
+                                if (child.Name == name)
+                                {
+                                    name = child.Name + "Item";
+                                }
 
-                    foreach(var pName in pNames)
-                    {
-                        var line = $@"public virtual ICollection<{child.Name}>? {pName} {{ get; set; }}";
-                        lines.Add(line);
+                                // DataContext 에서 관계설정하는 것으로 변경됨.
+                                //                        var line = $@"[InverseProperty(nameof({child.Name}.{name}))]
+                                //public virtual ICollection<{child.Name}>? {child.Name}{propertyName} {{ get; set; }}";
+
+                                var line = $@"public virtual ICollection<{child.Name}>? {child.Name}{propertyName} {{ get; set; }}";
+                                lines.Add(line);
+                            }
+                        }
                     }
                 }
             }

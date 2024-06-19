@@ -69,10 +69,16 @@ namespace MDDBooster
             return table.Columns.Any(p => p.Name == name) ? name + "Item" : name;
         }
 
-        internal static string GetVirtualManeName(TableMeta child)
+        internal static string GetVirtualManyName(TableMeta child)
         {
             var pName = child.Name.ToPlural();
             return pName;
+        }
+
+        internal static string GetManyName(string name)
+        {
+            var n = GetNameWithoutKey(name);
+            return n.ToPlural();
         }
     }
 }

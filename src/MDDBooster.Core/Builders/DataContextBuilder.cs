@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -28,12 +29,23 @@ namespace MDDBooster.Builders
             var onModelCreatingText = GetOnModelCreatingText(tables);
 
             var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
+using Microsoft.Extensions.Logging;
 
 namespace {ns}.Services
 {{
     public partial class DataContext(IHttpContextAccessor httpContextAccessor, DbContextOptions options) : ODataContext(httpContextAccessor, options)
     {{
 {dbSet}
+
+#if DEBUG
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {{
+            base.OnConfiguring(optionsBuilder);
+
+            optionsBuilder.UseLoggerFactory(LoggerFactory.Create(builder => {{ builder.AddConsole(); }}));
+            optionsBuilder.EnableSensitiveDataLogging();
+        }}
+#endif
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {{
@@ -51,8 +63,8 @@ namespace {ns}.Services
         private static string GetOnModelCreatingText(IEnumerable<TableMeta> tables)
         {
             var sb = new StringBuilder();
-            sb.AppendLine(BuildOneWithManyByFKLines(tables));
-            sb.AppendLine(BuildEntityToTableLines(tables));
+            sb.AppendLine(BuildOneWithManyByFKLines(tables).TrimEnd());
+            sb.AppendLine(BuildEntityToTableLines(tables).TrimEnd());
             return sb.ToString();
         }
 
@@ -60,30 +72,41 @@ namespace {ns}.Services
         {
             var sb = new StringBuilder();
 
+            var map = new Dictionary<string, string>()
+            {
+                { "ON DELETE NO ACTION", "NoAction" },
+            };
+
             foreach (var table in tables)
             {
-                foreach (var column in table.Columns)
+                foreach (var fkColumn in table.GetFkColumns())
                 {
-                    if (column.FK)
+                    var entityName = fkColumn.GetForeignKeyEntityName();
+                    var count = table.GetFkColumns().Where(p => p.GetForeignKeyEntityName() == entityName).Count();
+                    if (count < 2) continue; // 두개 이상인 것에 대해서만 추가 관계 설정
+
+                    var name = fkColumn.Name;
+                    var objName = Utils.GetNameWithoutKey(name);
+                    var manyName = $"{table.Name}{objName.ToPlural()}";
+                    if (objName == table.Name)
                     {
-                        var constants = column.LineText.RegexReturn("ON DELETE (.*?)]", 1);
-                        if (constants == "NO ACTION")
-                        {
-                            var entityName = table.Name;
-                            var keyName = column.Name;
-
-                            //var typeName = column.GetForeignKeyEntityName();
-                            var oneName = Utils.GetNameWithoutKey(column.Name);
-
-                            var line = $@"
-            modelBuilder.Entity<{entityName}>()
-                .HasOne(p => p.{oneName})
-                .WithMany()
-                .HasForeignKey(p => p.{keyName})
-                .OnDelete(DeleteBehavior.NoAction);";
-                            sb.AppendLine(line);
-                        }
+                        objName += "Item";
                     }
+
+                    var option = fkColumn.GetForeignKeyOption();
+                    option ??= fkColumn.NN == true ? "Cascade" : "SetNull";
+                    if (map.TryGetValue(option, out string? value))
+                    {
+                        option = value;
+                    }
+
+                    var line = $@"
+            modelBuilder.Entity<{table.Name}>()
+                .HasOne(f => f.{objName})
+                .WithMany(a => a.{manyName})
+                .HasForeignKey(f => f.{name})
+                .OnDelete(DeleteBehavior.{option});";
+                    sb.AppendLine(line);
                 }
             }
 
@@ -117,7 +140,7 @@ namespace {ns}.Services
             modelBuilder.Entity<{fkEntityName}>().HasAlternateKey(p => p.{fkColumnName});";
                             sb.AppendLine(line);
 
-                            var manyName = Utils.GetVirtualManeName(table);
+                            var manyName = Utils.GetVirtualManyName(table);
                             line = $@"
             modelBuilder.Entity<{table.Name}>()
                 .HasOne(p => p.{oneName})

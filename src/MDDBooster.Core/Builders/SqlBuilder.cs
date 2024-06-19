@@ -107,7 +107,7 @@ GO{nullableUniqueLinesText}";
                 ? c.NN == true
                 ? $" ON DELETE CASCADE"
                 : $" ON DELETE SET NULL"
-                : option;
+                : $" {option.Trim()}";
 
             var code = $@"ALTER TABLE [dbo].[{Name}] ADD CONSTRAINT [FK_{Name}_{c.Name}] FOREIGN KEY ([{c.Name}])
 REFERENCES [dbo].[{fkTable}]([{cName}]){onSyntax}
