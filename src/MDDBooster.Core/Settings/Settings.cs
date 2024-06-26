@@ -18,6 +18,7 @@ namespace MDDBooster.Settings
         public DatabaseProject? DatabaseProject { get; set; }
         public ServerProject? ServerProject { get; set; }
         public WebFrontEnd? WebFrontEnd { get; set; }
+        public FlutterProject? FlutterProject { get; set; }
 
         #endregion
     }

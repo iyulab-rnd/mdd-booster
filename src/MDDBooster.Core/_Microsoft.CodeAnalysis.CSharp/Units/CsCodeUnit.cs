@@ -203,5 +203,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Units
         public required string Type { get; set; }
         public bool IsRequired { get; set; }
         public bool IsNullable { get; set; }
+
+        public bool IsEnumerable => Type.Contains("IEnumerable<");
+        public bool IsGeneric => Type.Contains('<');
+        public string? GenericType => IsGeneric ? Type.Split('<')[1].Split('>')[0] : null;
     }
 }

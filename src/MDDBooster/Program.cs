@@ -51,6 +51,7 @@ internal class Program
                 services.AddSingleton<DatabaseProjectHandler>();
                 services.AddSingleton<ServerProjectHandler>();
                 services.AddSingleton<WebFrontEndHandler>();
+                services.AddSingleton<FlutterProjectHandler>();
             })
             //.ConfigureLogging(config =>
             //{

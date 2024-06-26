@@ -8,7 +8,8 @@ namespace MDDBooster
         DatabaseProjectHandler databaseProjectHandler,
         ModelProjectHandler modelProjectHandler,
         ServerProjectHandler serverProjectHandler,
-        WebFrontEndHandler webFrontEndHandler)
+        WebFrontEndHandler webFrontEndHandler,
+        FlutterProjectHandler flutterProjectHandler)
     {
         private readonly ILogger<Runner> logger = logger;
         private readonly Settings.Settings settings = settings;
@@ -16,6 +17,8 @@ namespace MDDBooster
         private readonly ModelProjectHandler modelProjectHandler = modelProjectHandler;
         private readonly ServerProjectHandler serverProjectHandler = serverProjectHandler;
         private readonly WebFrontEndHandler webFrontEndHandler = webFrontEndHandler;
+        private readonly FlutterProjectHandler flutterProjectHandler = flutterProjectHandler;
+
         private readonly string[] extensions = [".mdd", ".m3l"];
 
         public async Task RunAsync()
@@ -42,6 +45,7 @@ namespace MDDBooster
                     await modelProjectHandler.RunAsync(models);
                     await serverProjectHandler.RunAsync(models);
                     await webFrontEndHandler.RunAsync(models);
+                    await flutterProjectHandler.RunAsync(models);
                 }
             }
             catch (Exception e)
