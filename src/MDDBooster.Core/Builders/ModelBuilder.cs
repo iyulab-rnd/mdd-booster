@@ -439,7 +439,8 @@ namespace {ns}.Entity
                     enumDefinitions.Add(name);
 
                     var optionsLinesText = string.Join($",{Constants.NewLine}\t\t", options);
-                    var line = $@"public enum {name}
+                    var line = $@"
+    public enum {name}
 	{{
 		{optionsLinesText}
 	}}";
@@ -448,7 +449,7 @@ namespace {ns}.Entity
             }
 
             if (list.Count != 0)
-                return $"{Constants.NewLine}\t{string.Join(Constants.NewLine + Constants.NewLine, list)}{Constants.NewLine}";
+                return $"{string.Join(Constants.NewLine, list)}{Constants.NewLine}";
 
             else
                 return null;

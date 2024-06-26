@@ -541,6 +541,11 @@ namespace MDDBooster
             var optionsText = LineText.RegexReturn("enum\\((.*?)\\)", 1);
             if (optionsText != null)
             {
+                if (optionsText.Contains("name:"))
+                {
+                    var contains = optionsText.GetBetween("name:", ",", false, true);
+                    optionsText = optionsText.Replace(contains, string.Empty);
+                }
                 var keyOptions = optionsText.RightOr("enum:").LeftOr(",").LeftOr(")");
                 var options = keyOptions.Split("|").Select(p =>
                 {
