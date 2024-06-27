@@ -4,7 +4,7 @@
 		<TargetFramework>net8.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>1.0.13</Version>
+		<Version>1.0.14</Version>
 		<PackageId>MDD-Booster</PackageId>
 		<Authors>iyulab</Authors>
 		<Description>Code generation tool that supports M3L.</Description>

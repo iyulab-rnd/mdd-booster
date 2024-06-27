@@ -43,6 +43,14 @@ A code generator that supports MDD.
 			}
 		]
 	},	
+	"flutterProject": {
+		"models": [
+			{ 
+				"cs-file": "../src/Plands.MainServer/Contracts/PlanRequests.cs",
+				"dart-file": "../src/plands_app/lib/src/contracts/plan_requests.dart"
+		 	}
+		]
+	},
 }
 ```
 
@@ -50,7 +58,104 @@ A code generator that supports MDD.
 
 `tables.m3l`
 
-sample #1
+### Interface
+
+prefix: `I`
+
+```
+## IEntity
+```
+
+### Abstract
+
+options: `@abstract`
+
+```
+## KeyEntity : IKeyEntity, @abstract
+```
+
+### Implementation
+
+```
+## IKeyEntity : IEntity
+- _key: guid			            [PK, Without]
+```
+
+### Default Entity
+
+options: `@default`
+
+### Property (Column)
+
+Start with a list item ('-').
+
+`- {name}: {type}`
+
+default value: `= {default}`
+
+options: `[options]`
+
+description: `// DESCRIPTION`
+
+label: `- {name}({label}): {type}`
+
+#### nullable
+
+Add a `?` after the Name or Type.
+
+```
+- Locale?: string
+- Location_key: guid? // DESCRIPTION
+```
+
+#### Foriegn Key
+
+Once the naming convention is applied, you can also write it simply. [FK]
+
+`- ServiceAccount_key: guid [FK]`
+
+If you don't follow naming conventions
+
+`- FollowerId: guid [FK: Account._key]`
+
+On Delete or Update Actions
+
+`[FK: {Table}.{Column}, ON {DELETE|UPDATE} {Action}]]`
+
+`- Account_key: guid [FK: Account._key, ON DELETE NO ACTION]`
+
+#### Unique
+
+`- Email: string(256) [UQ]`
+
+If you combine them, add an item for each.
+
+`- @unique: ({columns})`
+
+```
+## PlanTag
+- Plan_key: guid
+- Tag_key: guid
+- @unique: (Plan_key, Tag_key)
+```
+
+#### Index
+
+use index `[UI]`
+
+```
+- EntityName: string [UI]
+```
+
+#### Anyting attributes
+
+You can add anything by wrapping it in '[]'. [anything] 
+
+`- PasswordHash?: string(256)		[DataType(DataType.Password)][JsonIgnore]`
+
+## Samples
+
+### sample #1
 
 ```
 
@@ -80,11 +185,4 @@ sample #1
 - PasswordChangedAt?: datetime
 - AcceptTermsAt?: datetime
 
-```
-
-### Foriegn Key
-
-```
-- Plan_key: guid
-- Account_key: guid [FK: Account._key, ON DELETE NO ACTION]
 ```
