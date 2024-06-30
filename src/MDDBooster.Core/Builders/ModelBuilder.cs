@@ -438,7 +438,13 @@ namespace {ns}.Entity
                     if (enumDefinitions.Contains(name)) continue;
                     enumDefinitions.Add(name);
 
-                    var optionsLinesText = string.Join($",{Constants.NewLine}\t\t", options);
+                    var optionsLinesText = string.Join($",{Constants.NewLine}\t\t", options.Select(p =>
+                    {
+                        if (p.Contains('=') != true)
+                            return p;
+                        else
+                            return $"{p.Split('=')[0].Trim()} = {p.Split('=')[1].Trim()}";
+                    }));
                     var line = $@"
     public enum {name}
 	{{

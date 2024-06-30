@@ -20,7 +20,7 @@ namespace MDDBooster.Builders
                 
             }
 #endif
-            var columnLines = FullColumns.Select(p => OutputColumnLIne(p));
+            var columnLines = FullColumns.Select(p => OutputColumnLine(p));
             var columnLinesText = string.Join(",\r\n\t", columnLines);
 
             var indexLines = FullColumns.Where(p => p.UI).Select(p => OutputIndexLine(p));
@@ -121,7 +121,7 @@ GO";
 GO";
         }
 
-        private static string OutputColumnLIne(ColumnMeta c)
+        private static string OutputColumnLine(ColumnMeta c)
         {
             var systemType = c.GetSystemType();
             var typeText = c.GetSqlType();

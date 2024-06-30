@@ -104,13 +104,13 @@ namespace MDDBooster.Builders
 
             var uniqueLines = GetUniqueLines(out var nullableUniqueLines);
             var uniqueLinesText = string.Empty;
-            if (uniqueLines != null && uniqueLines.Any())
+            if (uniqueLines != null && uniqueLines.Length != 0)
             {
                 var line = string.Join($",{Constants.NewLine}\t", uniqueLines);
                 uniqueLinesText = $",{Constants.NewLine}\t{line}";
             }
             var nullableUniqueLinesText = string.Empty;
-            if (nullableUniqueLines != null && nullableUniqueLines.Any())
+            if (nullableUniqueLines != null && nullableUniqueLines.Length != 0)
             {
                 var line = string.Join($"{Constants.NewLine}", nullableUniqueLines.Select(p => $"{p}{Constants.NewLine};"));
                 nullableUniqueLinesText = $"{Constants.NewLine}{line}";
@@ -150,10 +150,10 @@ CREATE TABLE ""{Name}""
                 }
             }
 
-            nullableUniqueLines = nullableUniqueList.ToArray();
+            nullableUniqueLines = [.. nullableUniqueList];
 
             var uniqueMultiples = this.meta.GetUniqueMultiples();
-            if (uniqueMultiples.Any() != true) return list.ToArray();
+            if (uniqueMultiples.Length != 0 != true) return [.. list];
 
             foreach (var uniqueMultiple in uniqueMultiples)
             {
@@ -164,7 +164,7 @@ CREATE TABLE ""{Name}""
                 list.Add(line);
             }
 
-            return list.ToArray();
+            return [.. list];
         }
 
         private object OutputFKLine(ColumnMeta c)
@@ -197,7 +197,7 @@ REFERENCES ""{fkTable}""(""{cName}""){onSyntax};";
             var typeText = GetSqlType(c);
             if (GetSize(c) is string size)
             {
-                if(size.ToUpper() != "MAX")
+                if(!size.Equals("MAX", StringComparison.CurrentCultureIgnoreCase))
                     typeText += $"({size.ToUpper()})";
                 else
                     typeText = $"TEXT";
@@ -230,16 +230,16 @@ REFERENCES ""{fkTable}""(""{cName}""){onSyntax};";
             {
                 if (systemType == typeof(string))
                 {
-                    if (defaultValue.StartsWith("\""))
+                    if (defaultValue.StartsWith('\"'))
                     {
                         defaultValue = $"'{defaultValue.GetBetween("\"", "\"")}'";
                     }
-                    else if (defaultValue.StartsWith("'") != true)
+                    else if (defaultValue.StartsWith('\'') != true)
                     {
                         defaultValue = $"'{defaultValue}'";
                     }
 
-                    if (defaultValue.StartsWith("'"))
+                    if (defaultValue.StartsWith('\''))
                     {
                         defaultValue = $"N{defaultValue}";
                     }
@@ -261,7 +261,7 @@ REFERENCES ""{fkTable}""(""{cName}""){onSyntax};";
         {
             if (typeAliasToTypeMap.TryGetValue(c.DataType.ToLower(), out var t))
             {
-                if (c.DataType.ToLower() == "enum")
+                if (c.DataType.Equals("enum", StringComparison.CurrentCultureIgnoreCase))
                 {
                     if (IsEnumKey(c))
                         return typeof(string);
@@ -281,12 +281,12 @@ REFERENCES ""{fkTable}""(""{cName}""){onSyntax};";
         {
             if (typeNameToSqlTypeMap.TryGetValue(c.DataType.ToLower(), out var t1))
             {
-                if (c.DataType.ToLower() == "enum")
+                if (c.DataType.Equals("enum", StringComparison.CurrentCultureIgnoreCase))
                 {
                     if (IsEnumKey(c))
                         return "VARCHAR";
                     else
-                        return "INTEGER";
+                        return "TINYINT";
                 }
 
                 return t1;

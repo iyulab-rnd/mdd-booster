@@ -308,7 +308,7 @@ namespace MDDBooster
                     if (IsEnumKey())
                         return "NVARCHAR";
                     else
-                        return "INTEGER";
+                        return "TINYINT";
                 }
 
                 return t1;
@@ -416,8 +416,15 @@ namespace MDDBooster
 
             if (line.RegexReturn(@"\s*=\s*(.*)?", 1) is string defaultText)
             {
-                defaultText = defaultText.LeftOr("[").LeftOr("//");
-                this.Default = defaultText.Trim();
+                if (line.Contains("enum") && defaultText.Contains('|') && defaultText.Contains('='))
+                {
+                    // default 값이 아님 (enum 의 속성정보임)
+                }
+                else
+                {
+                    defaultText = defaultText.LeftOr("[").LeftOr("//");
+                    this.Default = defaultText.Trim();
+                }
             }
 
             if (DataType != "enum" && line.GetBetween($"{DataType}(", ")") is string s && s.Length > 0)
@@ -520,9 +527,10 @@ namespace MDDBooster
         }
 
         internal bool IsEnumType() => DataType.Equals("enum", StringComparison.OrdinalIgnoreCase);
-        internal bool IsEnumKey() => 
+        internal bool IsEnumKey() =>
             LineText.Contains("enum", StringComparison.OrdinalIgnoreCase)
-            && LineText.Contains("key:", StringComparison.OrdinalIgnoreCase);
+            && LineText.Contains("key:", StringComparison.OrdinalIgnoreCase)
+            && LineText.GetBetween("key:", "|").Contains('=') != true; // = 기호가 있으면 대입되는 값이 있으므로 Key로 저장하지 않음
 
         internal bool IsEnumValue() => !IsEnumKey();
 
@@ -546,12 +554,13 @@ namespace MDDBooster
                     var contains = optionsText.GetBetween("name:", ",", false, true);
                     optionsText = optionsText.Replace(contains, string.Empty);
                 }
-                var keyOptions = optionsText.RightOr("enum:").LeftOr(",").LeftOr(")");
-                var options = keyOptions.Split("|").Select(p =>
+                if (optionsText.Contains("key:"))
                 {
-                    return p.Contains(':') ? p.Right(":").Trim() : p.Trim();
-                });
-                return options.ToArray();
+                    optionsText = optionsText.Replace("key:", string.Empty).Trim();
+                }
+                var keyOptions = optionsText.RightOr("enum:").LeftOr(",").LeftOr(")");
+                var options = keyOptions.Split("|");
+                return [.. options];
             }
             else
                 return null;
