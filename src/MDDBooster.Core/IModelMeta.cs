@@ -278,6 +278,7 @@ namespace MDDBooster
         public string Label { get; }
         public string ShortName { get; }
         public string? Description { get; private set; }
+        public string? Comment { get; private set; }
 
         public Type GetSystemType()
         {
@@ -489,6 +490,11 @@ namespace MDDBooster
             if (this.Description == null && lineText.Contains('#'))
             {
                 this.Description = lineText.Right("#").LeftOr("//").Trim();
+            }
+
+            if (this.Comment == null && lineText.Contains("//"))
+            {
+                this.Comment = lineText.Right("//").Trim();
             }
 
             this.Attributes = attributes;

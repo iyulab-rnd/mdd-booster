@@ -75,10 +75,11 @@ namespace MDDBooster.Builders
             var publicText = isInterface ? string.Empty : "public ";
             var requiredText = isInterface ? string.Empty : required;
             if (isInterface) defaultText = string.Empty;
+            var summaryText = string.IsNullOrWhiteSpace(c.Comment) ? string.Empty : $"/// <summary>{Constants.NewLine}\t\t/// {c.Comment}{Constants.NewLine}\t\t/// </summary>{Constants.NewLine}\t\t";
 
             var lines = new List<string>()
             {
-                @$"{attributesText}{publicText}{requiredText}{typeAlias}{nullable} {c.Name} {{ get; set; }}{defaultText}"
+                @$"{summaryText}{attributesText}{publicText}{requiredText}{typeAlias}{nullable} {c.Name} {{ get; set; }}{defaultText}"
             };
 
             if (c.IsEnumType())
