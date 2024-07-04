@@ -505,8 +505,21 @@ namespace MDDBooster
         private IEnumerable<string> GetAttributeLines(string lineText)
         {
             var line = Functions.GetConentLine(lineText);
-            var contents = line.GetBetween("[", "]");
-            return contents.Split(",").Select(p => p.Trim());
+            while (line.Contains('[') && line.Contains(']'))
+            {
+                var startIndex = line.IndexOf('[');
+                var endIndex = line.IndexOf(']');
+                var attributeString = line.Substring(startIndex + 1, endIndex - startIndex - 1);
+                line = line.Remove(startIndex, endIndex - startIndex + 1);
+
+                // "PK, Without" 이것은 2개로 분할되어야 합니다.
+                // "PK(123,456), Without(44,55) 이것은 2개로 분할되어야 합니다.
+                var attributes = attributeString.Split(new[] { ',', '(', ')' }, StringSplitOptions.RemoveEmptyEntries);
+                foreach (var attribute in attributes)
+                {
+                    yield return attribute.Trim();
+                }
+            }
         }
 
         private void ParseOptions(string lineText)

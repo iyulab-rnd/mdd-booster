@@ -91,6 +91,11 @@ namespace MDDBooster.Builders
 {usingLinesText}export namespace {ns} {{
 
 {sb}}}";
+            var dir = System.IO.Path.GetDirectoryName(tsFile)!;
+            if (Directory.Exists(dir) != true)
+            {
+                Directory.CreateDirectory(dir);
+            }
             await Functions.FileWriteAsync(tsFile, output);
 
             store.Add(new StoreRecord(ns, modelFiles, tsFile, enumTypes, interfaces, abstracts, classes));

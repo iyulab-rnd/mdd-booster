@@ -4,10 +4,8 @@ using MDDBooster.Settings;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Diagnostics;
-using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 internal class Program
 {
@@ -16,7 +14,8 @@ internal class Program
         var stopwatch = Stopwatch.StartNew();
 
 #if DEBUG
-        args = [@"D:\data\Plands\mdd"];
+        //args = [@"D:\data\Plands\mdd"];
+        args = [@"D:\data\U-Platform\mdd"];
 #endif
 
         if (args.Length < 1) args = [Environment.CurrentDirectory];

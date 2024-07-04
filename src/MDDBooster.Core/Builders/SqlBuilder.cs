@@ -1,10 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
-using System.Diagnostics;
-using System.Diagnostics.Metrics;
-using System.Net;
-using System.Text;
-
-namespace MDDBooster.Builders
+﻿namespace MDDBooster.Builders
 {
     public class SqlBuilder : BuilderBase
     {
@@ -21,7 +15,7 @@ namespace MDDBooster.Builders
             }
 #endif
             var columnLines = FullColumns.Select(p => OutputColumnLine(p));
-            var columnLinesText = string.Join(",\r\n\t", columnLines);
+            var columnLinesText = string.Join("\r\n\t", columnLines);
 
             var indexLines = FullColumns.Where(p => p.UI).Select(p => OutputIndexLine(p));
             var indexLinesText = string.Join(Constants.NewLine, indexLines);
@@ -31,13 +25,13 @@ namespace MDDBooster.Builders
 
             var uniqueLines = GetUniqueLines(out var nullableUniqueLines);
             var uniqueLinesText = string.Empty;
-            if (uniqueLines != null && uniqueLines.Any())
+            if (uniqueLines != null && uniqueLines.Length != 0)
             {
                 var line = string.Join($",{Constants.NewLine}\t", uniqueLines);
-                uniqueLinesText = $",{Constants.NewLine}\t{line}";
+                uniqueLinesText = $"{Constants.NewLine}\t{line}";
             }
             var nullableUniqueLinesText = string.Empty;
-            if (nullableUniqueLines != null && nullableUniqueLines.Any())
+            if (nullableUniqueLines != null && nullableUniqueLines.Length != 0)
             {
                 var line = string.Join($"{Constants.NewLine}", nullableUniqueLines.Select(p => $"{p}{Constants.NewLine}GO"));
                 nullableUniqueLinesText = $"{Constants.NewLine}{line}";
@@ -77,10 +71,10 @@ GO{nullableUniqueLinesText}";
                 }
             }
 
-            nullableUniqueLines = nullableUniqueList.ToArray();
+            nullableUniqueLines = [.. nullableUniqueList];
 
             var uniqueMultiples = this.meta.GetUniqueMultiples();
-            if (uniqueMultiples.Any() != true) return list.ToArray();
+            if (uniqueMultiples.Any() != true) return [.. list];
 
             foreach (var uniqueMultiple in uniqueMultiples)
             {
@@ -155,16 +149,16 @@ GO";
             {
                 if (systemType == typeof(string))
                 {
-                    if (defaultValue.StartsWith("\""))
+                    if (defaultValue.StartsWith('\"'))
                     {
                         defaultValue = $"'{defaultValue.GetBetween("\"", "\"")}'";
                     }
-                    else if (defaultValue.StartsWith("'") != true)
+                    else if (defaultValue.StartsWith('\'') != true)
                     {
                         defaultValue = $"'{defaultValue}'";
                     }
 
-                    if (defaultValue.StartsWith("'"))
+                    if (defaultValue.StartsWith('\''))
                     {
                         defaultValue = $"N{defaultValue}";
                     }
@@ -183,6 +177,24 @@ GO";
                     defaultValue = "0";
 
                 output += $" DEFAULT {defaultValue}";
+            }
+
+            var comment = c.Label == c.Name ? null : c.Label;
+            if (c.Comment != null)
+            {
+                if (comment != null)
+                {
+                    comment += ": ";
+                }
+                comment += c.Comment;
+            }
+            if (comment != null)
+            {
+                output += $", -- {comment}";
+            }
+            else
+            {
+                output += ",";
             }
 
             return output;
