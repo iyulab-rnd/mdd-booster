@@ -1,6 +1,7 @@
 ﻿
 using Microsoft.CodeAnalysis.CSharp.Units;
 using System.ComponentModel.DataAnnotations;
+using System.Formats.Tar;
 using System.Text;
 
 namespace MDDBooster.Builders
@@ -11,7 +12,19 @@ namespace MDDBooster.Builders
         {
             { "string", "String" },
             { "Guid", "String" },
+            { "decimal", "double" }
         };
+
+        private async Task WriteDartFileAsync(string code, string dartFile)
+        {
+            var dartContent = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
+
+{code}";
+            var dir = Path.GetDirectoryName(dartFile)!;
+            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+
+            await File.WriteAllTextAsync(dartFile, dartContent);
+        }
 
         internal async Task BuildAsync(string csFile, string dartFile)
         {
@@ -19,26 +32,59 @@ namespace MDDBooster.Builders
             var csHandler = new CsCodeUnit(code);
 
             var sb = new StringBuilder();
-            foreach(var classUnit in csHandler.ClassUnits)
+            foreach (var classUnit in csHandler.ClassUnits)
             {
                 var lines = BuildDartClass(classUnit, csHandler);
                 sb.AppendLine(lines);
             }
 
-            var dartContent = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
+            await WriteDartFileAsync(sb.ToString(), dartFile);
+        }
 
-{sb.ToString()}";
-            var dir = Path.GetDirectoryName(dartFile)!;
-            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+        internal async Task BuildAsync(IModelMeta[] models, string output)
+        {   
+            foreach(var model in models)
+            {
+                if (model is TableMeta table)
+                {
+                    var code = BuildDartClass(table)!;
+                    var fileName = table.Name.ToSnakeCase();
 
-            await File.WriteAllTextAsync(dartFile, dartContent);
+                    var dartFile = Path.Combine(output, $"{fileName}.dart");
+                    await WriteDartFileAsync(code, dartFile);
+                }
+            }
+        }
+
+        private string? BuildDartClass(TableMeta table)
+        {
+            var properties = table.FullColumns.Select(c => new CsProperty
+            {
+                Type = c.GetSystemTypeAlias(),
+                Name = c.Name,
+                IsNullable = c.IsNullable,
+            }).ToArray();
+
+            return BuildDartClass(table.Name, properties);
         }
 
         private string? BuildDartClass(ClassUnit classUnit, CsCodeUnit csHandler)
         {
+            return BuildDartClass(classUnit.Name, classUnit.Properties.Select(p => new CsProperty
+            {
+                Type = p.Type,
+                Name = p.Name,
+                IsEnumerable = p.IsEnumerable,
+                GenericType = p.GenericType,
+                IsNullable = p.IsNullable,
+            }).ToArray());
+        }
+
+        private string? BuildDartClass(string className, CsProperty[] properties)
+        {
             var sb = new StringBuilder();
-            sb.AppendLine($"class {classUnit.Name} {{");
-            foreach(var property in classUnit.Properties)
+            sb.AppendLine($"class {className} {{");
+            foreach(var property in properties)
             {
                 var type = typeMap.ContainsKey(property.Type) ? typeMap[property.Type] : property.Type;
                 if (property.IsEnumerable)
@@ -47,15 +93,15 @@ namespace MDDBooster.Builders
                     if (type != null && typeMap.TryGetValue(type, out string? value)) type = value;
                     type = $"List<{type}>";
                 }
-                var name = property.Name.ToCamel();
+                var name = AsDartName(property.Name);
                 var nullable = property.IsNullable ? "?" : "";
                 sb.AppendLine($"  {type}{nullable} {name};");
             }
 
             // 생성자
             sb.AppendLine();
-            sb.AppendLine($"  {classUnit.Name}({{");
-            foreach(var property in classUnit.Properties)
+            sb.AppendLine($"  {className}({{");
+            foreach(var property in properties)
             {
                 var type = typeMap.ContainsKey(property.Type) ? typeMap[property.Type] : property.Type;
                 if (property.IsEnumerable)
@@ -64,7 +110,7 @@ namespace MDDBooster.Builders
                     if (type != null && typeMap.TryGetValue(type, out string? value)) type = value;
                     type = $"List<{type}>";
                 }
-                var name = property.Name.ToCamel();
+                var name = AsDartName(property.Name);
                 var nullable = property.IsNullable ? "?" : "";
                 var required = property.IsNullable ? "" : "required ";
                 sb.AppendLine($"    {required}this.{name},");
@@ -73,8 +119,8 @@ namespace MDDBooster.Builders
 
             // fromJson
             sb.AppendLine();
-            sb.AppendLine($"  factory {classUnit.Name}.fromJson(Map<String, dynamic> json) => {classUnit.Name}(");
-            foreach(var property in classUnit.Properties)
+            sb.AppendLine($"  factory {className}.fromJson(Map<String, dynamic> json) => {className}(");
+            foreach(var property in properties)
             {
                 var type = property.Type;
                 if (property.IsEnumerable)
@@ -83,9 +129,9 @@ namespace MDDBooster.Builders
                     if (type != null && typeMap.TryGetValue(type, out string? mapType)) type = mapType;
                     type = $"List<{type}>";
                 }
-                var name = property.Name.ToCamel();
+                var name = AsDartName(property.Name);
                 var nullable = property.IsNullable ? "?" : "";
-                var value = $"json['{property.Name}']";
+                var value = $"json['{property.Name.ToCamel()}']";
                 if (type == "DateTime")
                 {
                     value = $"DateTime.parse({value})";
@@ -103,18 +149,18 @@ namespace MDDBooster.Builders
             // toJson
             sb.AppendLine();
             sb.AppendLine($"  Map<String, dynamic> toJson() => {{");
-            foreach(var property in classUnit.Properties)
+            foreach(var property in properties)
             {
                 var type = property.Type;
-                var name = property.Name.ToCamel();
+                var name = AsDartName(property.Name);
                 var nullable = property.IsNullable ? "?" : "";
 
                 var value = name;
                 if (type == "DateTime")
                 {
-                    value = $"{name}.toIso8601String()";
+                    value = $"{name}{nullable}.toIso8601String()";
                 }
-                sb.AppendLine($"    '{property.Name}': {value},");
+                sb.AppendLine($"    '{property.Name.ToCamel()}': {value},");
             }
             sb.AppendLine("  };");
 
@@ -122,5 +168,22 @@ namespace MDDBooster.Builders
 
             return sb.ToString();
         }
+
+        private static string AsDartName(string name)
+        {
+            if (name.StartsWith('_')) 
+                return name[1..].ToCamelWithoutUnderline();
+            else
+                return name.ToCamelWithoutUnderline();
+        }
+    }
+
+    public class CsProperty
+    {
+        public required string Type { get; set; }
+        public required string Name { get; set; }
+        public bool IsEnumerable { get; set; }
+        public string? GenericType { get; set; }
+        public bool IsNullable { get; set; }
     }
 }

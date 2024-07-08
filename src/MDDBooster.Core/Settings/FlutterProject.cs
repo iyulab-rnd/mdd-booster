@@ -4,6 +4,7 @@ namespace MDDBooster.Settings
 {
     public class FlutterProject
     {
+        public string? Output { get; set; }
         public IEnumerable<FlutterProjectModel>? Models { get; set; }
     }
 

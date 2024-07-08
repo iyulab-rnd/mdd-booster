@@ -1,5 +1,6 @@
 ﻿using Pluralize.NET;
 using System.Globalization;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace MDDBooster
@@ -141,7 +142,6 @@ namespace MDDBooster
             return input.Substring(startIndex + begin.Length, endIndex - startIndex - begin.Length);
         }
 
-
         public static string ToPascal(this string value)
         {
             TextInfo info = CultureInfo.CurrentCulture.TextInfo;
@@ -151,6 +151,36 @@ namespace MDDBooster
         public static string ToCamel(this string value)
         {
             return char.ToLowerInvariant(value[0]) + value[1..];
+        }
+
+        public static string ToCamelWithoutUnderline(this string value)
+        {
+            if (string.IsNullOrEmpty(value))
+                return value;
+
+            var words = value.Split('_');
+            var result = new StringBuilder();
+
+            for (int i = 0; i < words.Length; i++)
+            {
+                string word = words[i];
+                if (i == 0)
+                {
+                    result.Append(word.ToLower());
+                }
+                else
+                {
+                    result.Append(char.ToUpper(word[0]) + word.Substring(1).ToLower());
+                }
+            }
+
+            return result.ToString();
+        }
+
+        public static string ToSnakeCase(this string value)
+        {
+            var pascal = ToPascal(value);
+            return string.Concat(pascal.Select((x, i) => i > 0 && char.IsUpper(x) ? "_" + x.ToString() : x.ToString())).ToLower();
         }
 
         /// <summary>

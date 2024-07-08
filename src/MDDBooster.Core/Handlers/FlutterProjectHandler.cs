@@ -1,7 +1,6 @@
 ﻿using MDDBooster.Builders;
 using MDDBooster.Settings;
 using Microsoft.Extensions.Logging;
-using System.Reflection;
 
 namespace MDDBooster.Handlers
 {
@@ -10,9 +9,14 @@ namespace MDDBooster.Handlers
         private readonly ILogger<FlutterProjectHandler> logger = logger;
         private readonly Settings.Settings settings = settings;
 
-        internal async Task RunAsync(IModelMeta[] _)
+        internal async Task RunAsync(IModelMeta[] models)
         {
             if (settings.FlutterProject == null) return;
+
+            if (settings.FlutterProject.Output != null)
+            {
+                await BuildDtoModelsAsync(models, settings.FlutterProject.Output);
+            }
 
             if (settings.FlutterProject.Models != null)
             {
@@ -21,6 +25,15 @@ namespace MDDBooster.Handlers
                     await BuildModelFileAsync(m);
                 }
             }
+        }
+
+        private Task BuildDtoModelsAsync(IModelMeta[] models, string output)
+        {
+            logger.LogInformation($"Build FlutterProject DTO Models");
+            var builder = new DartModelBuilder();
+
+            var outputPath = Utils.ResolvePath(settings.BasePath, output);
+            return builder.BuildAsync(models, outputPath);
         }
 
         private Task BuildModelFileAsync(FlutterProjectModel m)

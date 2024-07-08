@@ -84,6 +84,8 @@ namespace MDDBooster
         public ColumnMeta[] Columns => _Columns ??= BuildColumns();
         public ColumnMeta[] FullColumns => _FullColumns ??= BuildFullColumns();
 
+        public bool IsAbstract => this is AbstractMeta;
+
         protected virtual ColumnMeta[] BuildColumns()
         {
             var list = new List<ColumnMeta>();
@@ -279,6 +281,7 @@ namespace MDDBooster
         public string ShortName { get; }
         public string? Description { get; private set; }
         public string? Comment { get; private set; }
+        public bool IsNullable => NN == false;
 
         public Type GetSystemType()
         {
