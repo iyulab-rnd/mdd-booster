@@ -33,6 +33,15 @@ namespace MDDBooster.Handlers
             var builder = new DartModelBuilder();
 
             var outputPath = Utils.ResolvePath(settings.BasePath, output);
+            if (Directory.Exists(outputPath))
+            {
+                Directory.Delete(outputPath, true);
+                Directory.CreateDirectory(outputPath);
+            }
+            else
+            {
+                Directory.CreateDirectory(outputPath);
+            }
             return builder.BuildAsync(models, outputPath);
         }
 

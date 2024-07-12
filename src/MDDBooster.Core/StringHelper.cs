@@ -158,19 +158,33 @@ namespace MDDBooster
             if (string.IsNullOrEmpty(value))
                 return value;
 
-            var words = value.Split('_');
+            bool isFirstChar = true;
+            bool skipNextChar = false;
             var result = new StringBuilder();
 
-            for (int i = 0; i < words.Length; i++)
+            for (int i = 0; i < value.Length; i++)
             {
-                string word = words[i];
-                if (i == 0)
+                char c = value[i];
+
+                if (c == '_')
                 {
-                    result.Append(word.ToLower());
+                    skipNextChar = true;
+                    continue;
+                }
+
+                if (skipNextChar)
+                {
+                    result.Append(char.ToUpper(c));
+                    skipNextChar = false;
+                }
+                else if (isFirstChar)
+                {
+                    result.Append(char.ToLower(c));
+                    isFirstChar = false;
                 }
                 else
                 {
-                    result.Append(char.ToUpper(word[0]) + word.Substring(1).ToLower());
+                    result.Append(c);
                 }
             }
 
@@ -179,8 +193,29 @@ namespace MDDBooster
 
         public static string ToSnakeCase(this string value)
         {
-            var pascal = ToPascal(value);
-            return string.Concat(pascal.Select((x, i) => i > 0 && char.IsUpper(x) ? "_" + x.ToString() : x.ToString())).ToLower();
+            if (string.IsNullOrEmpty(value))
+                return value;
+
+            var result = new StringBuilder();
+            bool lastCharWasUpper = false;
+
+            foreach (char c in value)
+            {
+                if (char.IsUpper(c))
+                {
+                    if (result.Length > 0 && !lastCharWasUpper)
+                        result.Append('_');
+                    result.Append(char.ToLower(c));
+                    lastCharWasUpper = true;
+                }
+                else
+                {
+                    result.Append(c);
+                    lastCharWasUpper = false;
+                }
+            }
+
+            return result.ToString();
         }
 
         /// <summary>

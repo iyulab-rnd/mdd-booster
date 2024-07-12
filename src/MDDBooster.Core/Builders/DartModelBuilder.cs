@@ -134,7 +134,10 @@ namespace MDDBooster.Builders
                 var value = $"json['{property.Name.ToCamel()}']";
                 if (type == "DateTime")
                 {
-                    value = $"DateTime.parse({value})";
+                    if (property.IsNullable)
+                        value = $"{value} != null ? DateTime.parse({value}) : null";
+                    else
+                        value = $"DateTime.parse({value})";
                 }
 
                 if (property.IsEnumerable && property.IsNullable)
