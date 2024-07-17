@@ -1,4 +1,5 @@
-﻿using Pluralize.NET;
+﻿using Humanizer;
+using Pluralize.NET;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -144,13 +145,12 @@ namespace MDDBooster
 
         public static string ToPascal(this string value)
         {
-            TextInfo info = CultureInfo.CurrentCulture.TextInfo;
-            return info.ToTitleCase(value).Replace(" ", string.Empty);
+            return value.Pascalize();
         }
 
         public static string ToCamel(this string value)
         {
-            return char.ToLowerInvariant(value[0]) + value[1..];
+            return value.Camelize();
         }
 
         public static string ToCamelWithoutUnderline(this string value)
@@ -193,29 +193,7 @@ namespace MDDBooster
 
         public static string ToSnakeCase(this string value)
         {
-            if (string.IsNullOrEmpty(value))
-                return value;
-
-            var result = new StringBuilder();
-            bool lastCharWasUpper = false;
-
-            foreach (char c in value)
-            {
-                if (char.IsUpper(c))
-                {
-                    if (result.Length > 0 && !lastCharWasUpper)
-                        result.Append('_');
-                    result.Append(char.ToLower(c));
-                    lastCharWasUpper = true;
-                }
-                else
-                {
-                    result.Append(c);
-                    lastCharWasUpper = false;
-                }
-            }
-
-            return result.ToString();
+            return value.Underscore();
         }
 
         /// <summary>

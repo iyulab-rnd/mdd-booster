@@ -227,8 +227,9 @@ namespace MDDBooster.Builders
                 string line;
                 if (column.IsNotNull())
                 {
+                    // OData의 객체는 include 옵션에 따라 할당되므로 optional 처리 함.
                     line = $@"[ForeignKey(nameof({c.Name}))]
-		public virtual {typeName} {oneName} {{ get; set; }} = null!;";
+		public virtual {typeName}? {oneName} {{ get; set; }}";
                 }
                 else
                 {
