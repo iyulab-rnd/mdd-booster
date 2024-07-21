@@ -10,8 +10,8 @@ namespace MDDBooster.Handlers
 
         private readonly string[] exceptNames =
         [
-            "IEntity", "IIdEntity", "IKeyEntity", "IAtEntity", "IUndeletable" ,
-            "IdEntity", "KeyEntity"
+            "IEntity", "IIdEntity", "IKeyEntity", "IGuidEntity", "IAtEntity", "IUndeletable" ,
+            "IdEntity", "KeyEntity", "GuidEntity"
         ];
 
         public async Task RunAsync(IModelMeta[] models)

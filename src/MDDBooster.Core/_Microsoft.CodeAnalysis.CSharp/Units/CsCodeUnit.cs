@@ -1,6 +1,7 @@
 ﻿using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis;
 using System.Diagnostics;
+using MDDBooster;
 
 namespace Microsoft.CodeAnalysis.CSharp.Units
 {
@@ -16,7 +17,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Units
 
         private void Parse(CSharpSyntaxNode _, SyntaxList<MemberDeclarationSyntax> members)
         {
-            foreach(var member in members)
+            foreach (var member in members)
             {
                 if (member is NamespaceDeclarationSyntax @namespace)
                 {
@@ -40,14 +41,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Units
                         Inherits = @class.GetIngeritNames(),
                         IsGeneric = @class.IsGeneric(),
                         GenericTypeNames = @class.GetGenericTypeNames(),
-                        Properties = @class.Members.OfType<PropertyDeclarationSyntax>().Select(p => 
-                            new PropertyUnit
-                            {
-                                Name = p.Identifier.ValueText, 
-                                Type = p.Type.ToString().Replace("?", ""),
-                                IsRequired = p.ToString().Contains("required"),
-                                IsNullable = p.Type is NullableTypeSyntax
-                            })
+                        Properties = @class.Members.OfType<PropertyDeclarationSyntax>().Select(p =>
+                            BuildProperty(p, p.ToString().Contains("required")))
                     };
                     if (classUnit.IsAbstract)
                     {
@@ -63,11 +58,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Units
                     var interfaceUnit = new InterfaceUnit
                     {
                         Name = @interface.Identifier.ValueText,
-                        Properties = @interface.Members.OfType<PropertyDeclarationSyntax>().Select(p => 
-                            BuildProperty(
-                                type: p.Type, 
-                                name: p.Identifier.ValueText, 
-                                isRequired: p.ToString().Contains("required")))
+                        Inherits = @interface.BaseList?.Types.Select(t => t.ToString()) ?? Enumerable.Empty<string>(),
+                        Properties = @interface.Members.OfType<PropertyDeclarationSyntax>().Select(p =>
+                            BuildProperty(p, p.ToString().Contains("required")))
                     };
                     InterfaceUnits.Add(interfaceUnit);
                 }
@@ -80,11 +73,16 @@ namespace Microsoft.CodeAnalysis.CSharp.Units
                     var classUnit = new ClassUnit
                     {
                         Name = @record.Identifier.ValueText,
-                        Properties = @record.ParameterList!.Parameters.OfType<ParameterSyntax>().Select(p => 
-                            BuildProperty(
-                                type: p.Type!,
-                                name: p.Identifier.ValueText,
-                                isRequired: p.ToString().Contains("required")))
+                        Properties = @record.ParameterList!.Parameters.OfType<ParameterSyntax>().Select(p =>
+                        {
+                            var property = SyntaxFactory.PropertyDeclaration(
+                                p.Type!,
+                                p.Identifier)
+                                .WithAttributeLists(p.AttributeLists)
+                                .WithModifiers(p.Modifiers);
+
+                            return BuildProperty(property, p.ToString().Contains("required"));
+                        })
                     };
                     if (classUnit.IsAbstract)
                     {
@@ -104,45 +102,62 @@ namespace Microsoft.CodeAnalysis.CSharp.Units
             }
         }
 
-        private PropertyUnit BuildProperty(TypeSyntax type, string name, bool isRequired)
+        private PropertyUnit BuildProperty(PropertyDeclarationSyntax property, bool isRequired)
         {
-            if (type is IdentifierNameSyntax)
+            if (property.Type is IdentifierNameSyntax)
             {
-                var enumName = type.ToString();
+                var enumName = property.Type.ToString();
                 var enumUnit = EnumUnits.FirstOrDefault(p => p.Name == enumName);
                 if (enumUnit == null)
                 {
-                    var unit = new PropertyUnit
+                    return new PropertyUnit
                     {
-                        Name = name,
-                        Type = "string",
+                        Name = property.Identifier.ValueText,
+                        Type = property.Type.ToString().Replace("?", ""),
                         IsRequired = isRequired,
-                        IsNullable = type is NullableTypeSyntax
+                        IsNullable = property.Type is NullableTypeSyntax,
+                        Attributes = GetAttributes(property)
                     };
-                    return unit;
                 }
                 else
                 {
                     return new PropertyUnit
                     {
-                        Name = name,
+                        Name = property.Identifier.ValueText,
                         Type = enumName,
                         IsRequired = isRequired,
-                        IsNullable = type is NullableTypeSyntax
+                        IsNullable = property.Type is NullableTypeSyntax,
+                        Attributes = GetAttributes(property)
                     };
                 }
             }
             else
             {
-                var unit = new PropertyUnit
+                return new PropertyUnit
                 {
-                    Name = name,
-                    Type = type!.ToString().Replace("?", ""),
+                    Name = property.Identifier.ValueText,
+                    Type = property.Type.ToString().Replace("?", ""),
                     IsRequired = isRequired,
-                    IsNullable = type is NullableTypeSyntax
+                    IsNullable = property.Type is NullableTypeSyntax,
+                    Attributes = GetAttributes(property)
                 };
-                return unit;
             }
+        }
+
+        private List<AttributeUnit> GetAttributes(PropertyDeclarationSyntax property)
+        {
+            return property.AttributeLists
+                .SelectMany(al => al.Attributes)
+                .Select(a => new AttributeUnit
+                {
+                    Name = a.Name.ToString(),
+                    Arguments = a.ArgumentList?.Arguments
+                        .ToDictionary(
+                            arg => arg.NameEquals?.Name.Identifier.Text ?? "",
+                            arg => arg.Expression.ToString()
+                        ) ?? new Dictionary<string, string>()
+                })
+                .ToList();
         }
 
         public List<EnumUnit> EnumUnits { get; } = [];
@@ -172,6 +187,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Units
         string Name { get; set; }
         IEnumerable<PropertyUnit> Properties { get; set; }
         IEnumerable<string> Inherits { get; set; }
+        IEnumerable<string> GetInterfaces();
+        IEnumerable<string> GetExtends();
         IEnumerable<string> GetPropertyNames();
     }
 
@@ -180,6 +197,17 @@ namespace Microsoft.CodeAnalysis.CSharp.Units
         public required string Name { get; set; }
         public required IEnumerable<PropertyUnit> Properties { get; set; }
         public IEnumerable<string> Inherits { get; set; } = [];
+
+        public IEnumerable<string> GetExtends()
+        {
+            return Inherits.Where(p => !Utils.IsInterfaceName(p));
+        }
+
+        public IEnumerable<string> GetInterfaces()
+        {
+            return Inherits.Where(Utils.IsInterfaceName);
+        }
+
         public IEnumerable<string> GetPropertyNames()
         {
             return Properties.Select(p => p.Name);
@@ -203,9 +231,42 @@ namespace Microsoft.CodeAnalysis.CSharp.Units
         public required string Type { get; set; }
         public bool IsRequired { get; set; }
         public bool IsNullable { get; set; }
+        public List<AttributeUnit> Attributes { get; set; } = new List<AttributeUnit>();
 
         public bool IsEnumerable => Type.Contains("IEnumerable<");
         public bool IsGeneric => Type.Contains('<');
         public string? GenericType => IsGeneric ? Type.Split('<')[1].Split('>')[0] : null;
+
+        public string GetLabel()
+        {
+            if (Attributes.FirstOrDefault(p => p.Name == "Display") is AttributeUnit displayAttr)
+            {
+                var name = displayAttr.Arguments["Name"];
+                // 양끝 따옴표를 제거합니다.
+                return name.StartsWith('"') && name.EndsWith('"') ? name[1..^1] : name;
+            }
+            else
+            {
+                return Name;
+            }
+        }
+
+        public string GetColumnTypeName()
+        {
+            if (Attributes.FirstOrDefault(p => p.Name == "Column") is AttributeUnit columnAttr)
+            {
+                return columnAttr.Arguments["TypeName"];
+            }
+            else
+            {
+                return Type;
+            }
+        }
+    }
+
+    public class AttributeUnit
+    {
+        public required string Name { get; set; }
+        public Dictionary<string, string> Arguments { get; set; } = new Dictionary<string, string>();
     }
 }

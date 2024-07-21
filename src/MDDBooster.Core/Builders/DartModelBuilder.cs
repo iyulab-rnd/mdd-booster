@@ -130,8 +130,9 @@ namespace MDDBooster.Builders
                     type = $"List<{type}>";
                 }
                 var name = AsDartName(property.Name);
+                var pName = property.Name.ToCamel(false);
                 var nullable = property.IsNullable ? "?" : "";
-                var value = $"json['{property.Name.ToCamel()}']";
+                var value = $"json['{pName}']";
                 if (type == "DateTime")
                 {
                     if (property.IsNullable)
@@ -142,7 +143,7 @@ namespace MDDBooster.Builders
 
                 if (property.IsEnumerable && property.IsNullable)
                 {
-                    value = $"json['{property.Name}'] != null ? {type}.from(json['{property.Name}']) : null";
+                    value = $"json['{pName}'] != null ? {type}.from(json['{pName}']) : null";
                 }
 
                 sb.AppendLine($"    {name}: {value},");
@@ -156,6 +157,7 @@ namespace MDDBooster.Builders
             {
                 var type = property.Type;
                 var name = AsDartName(property.Name);
+                var pName = property.Name.ToCamel(false);
                 var nullable = property.IsNullable ? "?" : "";
 
                 var value = name;
@@ -163,7 +165,7 @@ namespace MDDBooster.Builders
                 {
                     value = $"{name}{nullable}.toIso8601String()";
                 }
-                sb.AppendLine($"    '{property.Name.ToCamel()}': {value},");
+                sb.AppendLine($"    '{pName}': {value},");
             }
             sb.AppendLine("  };");
 

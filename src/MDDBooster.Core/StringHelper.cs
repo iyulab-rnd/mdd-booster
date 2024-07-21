@@ -148,47 +148,90 @@ namespace MDDBooster
             return value.Pascalize();
         }
 
-        public static string ToCamel(this string value)
-        {
-            return value.Camelize();
-        }
-
-        public static string ToCamelWithoutUnderline(this string value)
+        /// <summary>
+        /// 주어진 문자열을 카멜 케이스로 변환합니다.
+        /// </summary>
+        /// <remarks>
+        /// 이 메서드는 다음과 같은 규칙을 따릅니다:
+        /// <list type="bullet">
+        /// <item>첫 번째 문자는 항상 소문자로 변환됩니다.</item>
+        /// <item>대문자로 이루어진 단어 (약어)는 모두 소문자로 변환됩니다. (예: "SID" -> "sid").</item>
+        /// <item>연속된 대문자로 시작하는 단어는 모두 소문자로 변환됩니다 (예: "MLType" -> "mlType").</item>
+        /// <item>대문자 다음에 소문자가 오는 경우, 대문자는 유지됩니다 (예: "UserID" -> "userId").</item>
+        /// <item>언더스코어('_')는 제거되며, 그 다음 문자는 대문자로 변환됩니다.</item>
+        /// </list>
+        /// </remarks>
+        /// <param name="value">카멜 케이스로 변환할 문자열입니다.</param>
+        /// <returns>카멜 케이스로 변환된 문자열을 반환합니다. 입력이 null이거나 비어있는 경우 그대로 반환됩니다.</returns>
+        /// <example>
+        /// 사용 예:
+        /// <code>
+        /// string result1 = "SID".ToCamel(); // 결과: "sid"
+        /// string result2 = "UserID".ToCamel(); // 결과: "userId"
+        /// string result3 = "MLType".ToCamel(); // 결과: "mlType"
+        /// string result4 = "ABC_DEF".ToCamel(); // 결과: "abcDef"
+        /// </code>
+        /// </example>
+        public static string ToCamel(this string value, bool removeLowdash = true)
         {
             if (string.IsNullOrEmpty(value))
                 return value;
 
-            bool isFirstChar = true;
-            bool skipNextChar = false;
             var result = new StringBuilder();
+            bool nextUpper = false;
+            bool firstChar = true;
 
             for (int i = 0; i < value.Length; i++)
             {
-                char c = value[i];
-
-                if (c == '_')
+                if (value[i] == '_')
                 {
-                    skipNextChar = true;
-                    continue;
-                }
-
-                if (skipNextChar)
-                {
-                    result.Append(char.ToUpper(c));
-                    skipNextChar = false;
-                }
-                else if (isFirstChar)
-                {
-                    result.Append(char.ToLower(c));
-                    isFirstChar = false;
+                    if (!removeLowdash)
+                    {
+                        result.Append('_');
+                    }
+                    nextUpper = removeLowdash;
                 }
                 else
                 {
-                    result.Append(c);
+                    if (char.IsUpper(value[i]))
+                    {
+                        if (firstChar)
+                        {
+                            result.Append(char.ToLower(value[i]));
+                            firstChar = false;
+                        }
+                        else if (i + 1 < value.Length && char.IsLower(value[i + 1]))
+                        {
+                            // 대문자 다음에 소문자가 오는 경우
+                            result.Append(value[i]);
+                        }
+                        else
+                        {
+                            // 연속된 대문자의 경우
+                            result.Append(char.ToLower(value[i]));
+                        }
+                    }
+                    else
+                    {
+                        if (nextUpper)
+                        {
+                            result.Append(char.ToUpper(value[i]));
+                            nextUpper = false;
+                        }
+                        else
+                        {
+                            result.Append(value[i]);
+                        }
+                        firstChar = false;
+                    }
                 }
             }
-
             return result.ToString();
+        }
+
+        public static string ToCamelWithoutUnderline(this string value)
+        {
+            return value.ToCamel(true);
         }
 
         public static string ToSnakeCase(this string value)
