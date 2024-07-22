@@ -364,7 +364,6 @@ namespace Iyu.Entity
                     sb.AppendLine("      super(data);");
                 }
                 sb.AppendLine("      if (data) {");
-                sb.AppendLine("        Object.assign(this, data);");
 
                 foreach (var property in model.Properties)
                 {
@@ -390,6 +389,10 @@ namespace Iyu.Entity
                         if (m.Item1 != null)
                         {
                             sb.AppendLine($"        if (data.{propertyName}) this.{propertyName} = new {m.Item1.ns}.{propertyType}(data.{propertyName});");
+                        }
+                        else
+                        {
+                            sb.AppendLine($"        if (data.{propertyName}) this.{propertyName} = data.{propertyName};");
                         }
                     }
                 }
