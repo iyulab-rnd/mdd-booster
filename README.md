@@ -71,14 +71,14 @@ prefix: `I`
 options: `@abstract`
 
 ```
-## KeyEntity : IKeyEntity, @abstract
+## GuidEntity : IGuidEntity, @abstract
 ```
 
 ### Implementation
 
 ```
-## IKeyEntity : IEntity
-- _key: guid			            [PK, Without]
+## IGuidEntity : IEntity
+- _id: guid			            [PK, Without]
 ```
 
 ### Default Entity
@@ -105,24 +105,24 @@ Add a `?` after the Name or Type.
 
 ```
 - Locale?: string
-- Location_key: guid? // DESCRIPTION
+- Location_id: guid? // DESCRIPTION
 ```
 
 #### Foriegn Key
 
 Once the naming convention is applied, you can also write it simply. [FK]
 
-`- ServiceAccount_key: guid [FK]`
+`- ServiceAccount_id: guid [FK]`
 
 If you don't follow naming conventions
 
-`- FollowerId: guid [FK: Account._key]`
+`- FollowerId: guid [FK: Account._id]`
 
 On Delete or Update Actions
 
 `[FK: {Table}.{Column}, ON {DELETE|UPDATE} {Action}]]`
 
-`- Account_key: guid [FK: Account._key, ON DELETE NO ACTION]`
+`- Account_id: guid [FK: Account._id, ON DELETE NO ACTION]`
 
 #### Unique
 
@@ -134,9 +134,9 @@ If you combine them, add an item for each.
 
 ```
 ## PlanTag
-- Plan_key: guid
-- Tag_key: guid
-- @unique: (Plan_key, Tag_key)
+- Plan_id: guid
+- Tag_id: guid
+- @unique: (Plan_id, Tag_id)
 ```
 
 #### Index
@@ -161,8 +161,8 @@ You can add anything by wrapping it in '[]'. [anything]
 
 ## IEntity
 
-## IKeyEntity : IEntity
-- _key: guid			            [PK, Without]
+## IGuidEntity : IEntity
+- _id: guid			            [PK, Without]
 
 ## IAtEntity : IEntity
 - CreatedAt: datetime = "@now"		[Insert("@now")]
@@ -170,9 +170,9 @@ You can add anything by wrapping it in '[]'. [anything]
 - UpdatedAt?: datetime				[Update("@now")]
 - UpdatedBy?: string				[Update("@by")]
 
-## KeyEntity : IKeyEntity, @abstract
+## GuidEntity : IGuidEntity, @abstract
 
-## EntityBase : KeyEntity, IAtEntity, @default, @abstract
+## EntityBase : GuidEntity, IAtEntity, @default, @abstract
 
 ## Account:
 - Email: string(256)

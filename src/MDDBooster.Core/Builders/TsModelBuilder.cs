@@ -144,6 +144,22 @@ namespace Iyu.Entity
         [Without]
         public Guid _key { get; set; }
     }
+
+    public interface IGuidEntity : IEntity
+    {
+        [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        [Required]
+        [Without]
+        Guid _id { get; set; }
+    }
+
+    public abstract class GuidEntity : IGuidEntity
+    {
+        [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        [Required]
+        [Without]
+        public Guid _id { get; set; }
+    }
 }";
             handlers.Add(new CsCodeUnit(code));
         }
@@ -323,8 +339,12 @@ namespace Iyu.Entity
 
                     if (propertyMetaTypeMap.TryGetValue(type, out string? propertyMetaType))
                     {
+                        var pType = propertyMetaType;
+                        if (property.Name.Contains("email", StringComparison.OrdinalIgnoreCase) && property.Type == "string") pType = "email";
+                        else if (property.Name.Contains("password", StringComparison.OrdinalIgnoreCase) && property.Type == "string") pType = "password";
+
                         var sRequired = property.IsRequired ? ", required: true" : "";
-                        propertyMetaDecorator = $@"@propertyMeta({{ type: ""{propertyMetaType}"", label: '{property.GetLabel()}'{sRequired} }})";
+                        propertyMetaDecorator = $@"@propertyMeta({{ type: ""{pType}"", label: '{property.GetLabel()}'{sRequired} }})";
                     }
                 }
                 if (string.IsNullOrEmpty(propertyMetaDecorator) != true)
