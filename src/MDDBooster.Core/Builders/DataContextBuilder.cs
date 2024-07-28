@@ -51,7 +51,11 @@ namespace {ns}.Services
         {{
             base.OnModelCreating(modelBuilder);
 {onModelCreatingText}
+
+            OnModelCreatingPartial(modelBuilder);
         }}
+
+        partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
     }}
 }}";
 
