@@ -1,13 +1,16 @@
 ﻿
 using Microsoft.CodeAnalysis.CSharp.Units;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.Metrics;
 using System.Formats.Tar;
+using System.IO;
 using System.Text;
 
 namespace MDDBooster.Builders
 {
     internal class DartModelBuilder
     {
+        private static string[] skipNamesInForNew = ["_id", "CreatedAt", "UpdatedAt", "CreatedBy", "UpdatedBy"];
         private static readonly Dictionary<string, string> typeMap = new()
         {
             { "string", "String" },
@@ -86,13 +89,7 @@ namespace MDDBooster.Builders
             sb.AppendLine($"class {className} {{");
             foreach(var property in properties)
             {
-                var type = typeMap.ContainsKey(property.Type) ? typeMap[property.Type] : property.Type;
-                if (property.IsEnumerable)
-                {
-                    type = property.GenericType;
-                    if (type != null && typeMap.TryGetValue(type, out string? value)) type = value;
-                    type = $"List<{type}>";
-                }
+                var type = AsDartType(property);
                 var name = AsDartName(property.Name);
                 var nullable = property.IsNullable ? "?" : "";
                 sb.AppendLine($"  {type}{nullable} {name};");
@@ -103,13 +100,7 @@ namespace MDDBooster.Builders
             sb.AppendLine($"  {className}({{");
             foreach(var property in properties)
             {
-                var type = typeMap.ContainsKey(property.Type) ? typeMap[property.Type] : property.Type;
-                if (property.IsEnumerable)
-                {
-                    type = property.GenericType;
-                    if (type != null && typeMap.TryGetValue(type, out string? value)) type = value;
-                    type = $"List<{type}>";
-                }
+                var type = AsDartType(property);
                 var name = AsDartName(property.Name);
                 var nullable = property.IsNullable ? "?" : "";
                 var required = property.IsNullable ? "" : "required ";
@@ -117,18 +108,12 @@ namespace MDDBooster.Builders
             }
             sb.AppendLine("  });");
 
-            // fromJson
+            // factory fromJson
             sb.AppendLine();
             sb.AppendLine($"  factory {className}.fromJson(Map<String, dynamic> json) => {className}(");
             foreach(var property in properties)
             {
-                var type = property.Type;
-                if (property.IsEnumerable)
-                {
-                    type = property.GenericType;
-                    if (type != null && typeMap.TryGetValue(type, out string? mapType)) type = mapType;
-                    type = $"List<{type}>";
-                }
+                var type = AsDartType(property);
                 var name = AsDartName(property.Name);
                 var pName = property.Name.ToCamel(false);
                 var nullable = property.IsNullable ? "?" : "";
@@ -149,6 +134,62 @@ namespace MDDBooster.Builders
                 sb.AppendLine($"    {name}: {value},");
             }
             sb.AppendLine("  );");
+
+            // factory forNew
+            sb.AppendLine();
+            sb.AppendLine($"  factory {className}.forNew({{");
+            foreach(var property in properties)
+            {
+                if (skipNamesInForNew.Contains(property.Name)) continue;
+
+                var type = AsDartType(property);
+                var name = AsDartName(property.Name);
+                var required = property.IsNullable ? "" : "required ";
+                var nullable = property.IsNullable ? "?" : "";
+                sb.AppendLine($"    {required}{type}{nullable} {name},");
+            }
+            sb.AppendLine("  }) {");
+
+            sb.AppendLine($"    return {className}(");
+            foreach (var property in properties)
+            {
+                var name = AsDartName(property.Name);
+                var required = property.IsNullable ? "" : "required ";
+                var type = typeMap.TryGetValue(property.Type, out string? value) ? value : property.Type;
+                var nullable = property.IsNullable ? "?" : "";
+
+                if (skipNamesInForNew.Contains(property.Name))
+                {
+                    if (property.IsNullable) continue;
+                    value = property.Type switch
+                    {
+                        "string" => "''",
+                        "Guid" => "''",
+                        "decimal" => "0",
+                        "DateTime" => "DateTime.now()",
+                        _ => "null",
+                    };
+                    sb.AppendLine($"      {name}: {value},");
+                }
+                else
+                {
+                    sb.AppendLine($"      {name}: {name},");
+                }
+                //return Location(
+                //    name: name,
+                //    countryCode: countryCode,
+                //    country: country,
+                //    city: city,
+                //    district: district,
+                //    street: street,
+                //    latitude: latitude,
+                //    longitude: longitude,
+                //    createdAt: DateTime.now(),
+                //    createdBy: '',
+                //    id: '');
+            }
+            sb.AppendLine("    );");
+            sb.AppendLine("  }");
 
             // toJson
             sb.AppendLine();
@@ -172,6 +213,18 @@ namespace MDDBooster.Builders
             sb.AppendLine("}");
 
             return sb.ToString();
+        }
+
+        private static string AsDartType(CsProperty property)
+        {
+            var type = typeMap.TryGetValue(property.Type, out string? value) ? value : property.Type;
+            if (property.IsEnumerable)
+            {
+                type = property.GenericType;
+                if (type != null && typeMap.TryGetValue(type, out string? mapType)) type = mapType;
+                type = $"List<{type}>";
+            }
+            return type;
         }
 
         private static string AsDartName(string name)
