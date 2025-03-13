@@ -104,9 +104,10 @@ namespace MDDBooster.Builders
 
 import {{ propertyMeta }} from ""@iyulab/u-components"";
 
-{usingLinesText}export namespace {ns} {{
+{usingLinesText}export namespace {ns};
 
-{sb}}}";
+{sb}
+";
             var dir = System.IO.Path.GetDirectoryName(tsFile)!;
             if (Directory.Exists(dir) != true)
             {
@@ -123,44 +124,44 @@ import {{ propertyMeta }} from ""@iyulab/u-components"";
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Iyu.Entity
+namespace Iyu.Entity;
+
+public interface IEntity
+{   
+}
+
+public interface IKeyEntity : IEntity
 {
-    public interface IEntity
-    {   
-    }
+    [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    [Required]
+    [Without]
+    Guid _key { get; set; }
+}
 
-    public interface IKeyEntity : IEntity
-    {
-        [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        [Required]
-        [Without]
-        Guid _key { get; set; }
-    }
+public abstract class KeyEntity : IKeyEntity
+{
+    [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    [Required]
+    [Without]
+    public Guid _key { get; set; }
+}
 
-    public abstract class KeyEntity : IKeyEntity
-    {
-        [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        [Required]
-        [Without]
-        public Guid _key { get; set; }
-    }
+public interface IGuidEntity : IEntity
+{
+    [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    [Required]
+    [Without]
+    Guid _id { get; set; }
+}
 
-    public interface IGuidEntity : IEntity
-    {
-        [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        [Required]
-        [Without]
-        Guid _id { get; set; }
-    }
-
-    public abstract class GuidEntity : IGuidEntity
-    {
-        [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        [Required]
-        [Without]
-        public Guid _id { get; set; }
-    }
-}";
+public abstract class GuidEntity : IGuidEntity
+{
+    [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    [Required]
+    [Without]
+    public Guid _id { get; set; }
+}
+";
             handlers.Add(new CsCodeUnit(code));
         }
 

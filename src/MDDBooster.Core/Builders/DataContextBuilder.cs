@@ -31,33 +31,33 @@ namespace MDDBooster.Builders
             var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
 using Microsoft.Extensions.Logging;
 
-namespace {ns}.Services
+namespace {ns}.Services;
+
+public partial class DataContext(IHttpContextAccessor httpContextAccessor, DbContextOptions options) : ODataContext(httpContextAccessor, options)
 {{
-    public partial class DataContext(IHttpContextAccessor httpContextAccessor, DbContextOptions options) : ODataContext(httpContextAccessor, options)
-    {{
 {dbSet}
 
 #if DEBUG
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {{
-            base.OnConfiguring(optionsBuilder);
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {{
+        base.OnConfiguring(optionsBuilder);
 
-            optionsBuilder.UseLoggerFactory(LoggerFactory.Create(builder => {{ builder.AddConsole(); }}));
-            optionsBuilder.EnableSensitiveDataLogging();
-        }}
+        optionsBuilder.UseLoggerFactory(LoggerFactory.Create(builder => {{ builder.AddConsole(); }}));
+        optionsBuilder.EnableSensitiveDataLogging();
+    }}
 #endif
 
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {{
-            base.OnModelCreating(modelBuilder);
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {{
+        base.OnModelCreating(modelBuilder);
 {onModelCreatingText}
 
-            OnModelCreatingPartial(modelBuilder);
-        }}
-
-        partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
+        OnModelCreatingPartial(modelBuilder);
     }}
-}}";
+
+    partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
+}}
+";
 
             var text = code.Replace("\t", "    ");
             var path = Path.Combine(basePath, $"DataContext.cs");

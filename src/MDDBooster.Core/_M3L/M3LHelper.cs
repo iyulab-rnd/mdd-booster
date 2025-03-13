@@ -91,7 +91,7 @@ namespace M3L
 
                     if (string.IsNullOrEmpty(attrText) != true)
                     {
-                        attrText = "\t\t" + attrText;
+                        attrText = "\t" + attrText;
                     }
 
                     var propertyLine = $"- {property.Name}{optional}{label}: {typeText}{sizeText}{defaultText}{attrText}";

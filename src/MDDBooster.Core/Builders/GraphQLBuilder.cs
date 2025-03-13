@@ -82,18 +82,17 @@ namespace MDDBooster.Builders
                 var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
 #pragma warning disable CS8618, IDE1006
 
-namespace {modelNS}.Gql
-{{
-    public class {name}SearchRequest : IGqlSearchRequest<{name}>
-    {{
-        public {pkType} {pk.Name} {{ get; set; }}
-        public string[] Columns {{ get; set; }}
-    }}
+namespace {modelNS}.Gql;
 
-    public class {pName}SearchRequest : PageRequestBase, IGqlSearchRequest<{name}>
-    {{
+public class {name}SearchRequest : IGqlSearchRequest<{name}>
+{{
+    public {pkType} {pk.Name} {{ get; set; }}
+    public string[] Columns {{ get; set; }}
+}}
+
+public class {pName}SearchRequest : PageRequestBase, IGqlSearchRequest<{name}>
+{{
 {sbPropertyLines}
-    }}
 }}
 
 #pragma warning restore CS8618, IDE1006";
@@ -128,23 +127,23 @@ namespace {modelNS}.Gql
             var ns = settings.ServerProject!.Namespace;
             var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
 
-namespace {ns}.Gql
+namespace {ns}.Gql;
+
+public partial class AppGqlQuery : ObjectGraphType<object>
 {{
-    public partial class AppGqlQuery : ObjectGraphType<object>
+    public AppGqlQuery(IServiceProvider provider)
     {{
-        public AppGqlQuery(IServiceProvider provider)
-        {{
-            Name = ""Query"";
+        Name = ""Query"";
 
-            {linesText}
-        }}
-
-        private void Register(IGqlQuery queryType)
-        {{
-            queryType.DefineQuery(this);
-        }}
+        {linesText}
     }}
-}}";
+
+    private void Register(IGqlQuery queryType)
+    {{
+        queryType.DefineQuery(this);
+    }}
+}}
+";
             var fileName = $"AppGqlQuery.cs";
             var path = Path.Combine(basePath, fileName);
             AppFunctions.WriteFile(path, code);
@@ -155,22 +154,22 @@ namespace {ns}.Gql
             var ns = settings.ServerProject!.Namespace;
             var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
 
-namespace {ns}.Gql
+namespace {ns}.Gql;
+
+public partial class AppGqlSchema : Schema
 {{
-    public partial class AppGqlSchema : Schema
+    public AppGqlSchema(IServiceProvider provider) : base(provider)
     {{
-        public AppGqlSchema(IServiceProvider provider) : base(provider)
-        {{
-            Query = provider.GetService(typeof(AppGqlQuery)) is AppGqlQuery query 
-                ? query 
-                : throw new InvalidOperationException();
+        Query = provider.GetService(typeof(AppGqlQuery)) is AppGqlQuery query 
+            ? query 
+            : throw new InvalidOperationException();
 
-            //Mutation = (AppGqlMutation)provider.GetService(typeof(AppGqlMutation)) ?? throw new InvalidOperationException();
+        //Mutation = (AppGqlMutation)provider.GetService(typeof(AppGqlMutation)) ?? throw new InvalidOperationException();
 
-            FieldMiddleware.Use(new InstrumentFieldsMiddleware());
-        }}
+        FieldMiddleware.Use(new InstrumentFieldsMiddleware());
     }}
-}}";
+}}
+";
             var fileName = $"AppGqlSchema.cs";
             var path = Path.Combine(basePath, fileName);
             AppFunctions.WriteFile(path, code);
@@ -181,12 +180,12 @@ namespace {ns}.Gql
             var ns = settings.ServerProject!.Namespace;
             var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
 
-namespace {ns}.Gql
+namespace {ns}.Gql;
+    
+public partial class AppGqlValidationRule : GqlValidationRule
 {{
-    public partial class AppGqlValidationRule : GqlValidationRule
-    {{
-    }}
-}}";
+}}
+";
             var fileName = $"AppGqlValidationRule.cs";
             var path = Path.Combine(basePath, fileName);
             AppFunctions.WriteFile(path, code);
@@ -232,52 +231,52 @@ namespace {ns}.Gql
 
             var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
 
-namespace {serverNS}.Gql.Schemas
+namespace {serverNS}.Gql.Schemas;
+
+public class {entityName}FieldType : FieldType
 {{
-    public class {entityName}FieldType : FieldType
+    public {entityName}FieldType()
     {{
-        public {entityName}FieldType()
+        this.Name = nameof({entityName});
+
+        this.Type = typeof({entityName}GraphType);
+
+        this.Arguments = new QueryArguments(new List<QueryArgument>
         {{
-            this.Name = nameof({entityName});
-
-            this.Type = typeof({entityName}GraphType);
-
-            this.Arguments = new QueryArguments(new List<QueryArgument>
+            new QueryArgument<NonNullGraphType<IdGraphType>>
             {{
-                new QueryArgument<NonNullGraphType<IdGraphType>>
-                {{
-                    Name = nameof({entityName}.{pk.Name})
-                }}
-            }});
+                Name = nameof({entityName}.{pk.Name})
+            }}
+        }});
 
-            this.Resolver = IoC.Resolve<{entityName}Repository>().GetResolverFindOne();
-        }}
+        this.Resolver = IoC.Resolve<{entityName}Repository>().GetResolverFindOne();
     }}
+}}
 
-    public class {entityNames}FieldType : FieldType
+public class {entityNames}FieldType : FieldType
+{{
+    public {entityNames}FieldType()
     {{
-        public {entityNames}FieldType()
-        {{
-            this.Name = ""{entityNames}"";
+        this.Name = ""{entityNames}"";
 
-            this.Type = typeof(ListGraphType<{entityName}GraphType>);
+        this.Type = typeof(ListGraphType<{entityName}GraphType>);
 
-            this.Arguments = new QueryArguments(new List<QueryArgument>
-            {{{sbPropertyLines}
-                new QueryArgument<IntGraphType>
-                {{
-                    Name = nameof({entityNames}SearchRequest.Page)
-                }},
-                new QueryArgument<IntGraphType>
-                {{
-                    Name = nameof({entityNames}SearchRequest.PageSize)
-                }},
-            }});
+        this.Arguments = new QueryArguments(new List<QueryArgument>
+        {{{sbPropertyLines}
+            new QueryArgument<IntGraphType>
+            {{
+                Name = nameof({entityNames}SearchRequest.Page)
+            }},
+            new QueryArgument<IntGraphType>
+            {{
+                Name = nameof({entityNames}SearchRequest.PageSize)
+            }},
+        }});
 
-            this.Resolver = IoC.Resolve<{entityName}Repository>().GetResolverFind();
-        }}
+        this.Resolver = IoC.Resolve<{entityName}Repository>().GetResolverFind();
     }}
-}}";
+}}
+";
             var fileName = $"{table.Name}FieldType.cs";
             var path = Path.Combine(basePath, fileName);
             AppFunctions.WriteFile(path, code);
@@ -332,18 +331,18 @@ namespace {serverNS}.Gql.Schemas
 
             var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
 
-namespace {serverNS}.Gql.Schemas
-{{
-    public class {entityName}GraphType: ObjectGraphType<{entityName}>
-    {{
-        public {entityName}GraphType({entityName}Repository repository)
-        {{
-            Name = nameof({entityName});
+namespace {serverNS}.Gql.Schemas;
 
-            {fieldLinesText}
-        }}
+public class {entityName}GraphType: ObjectGraphType<{entityName}>
+{{
+    public {entityName}GraphType({entityName}Repository repository)
+    {{
+        Name = nameof({entityName});
+
+        {fieldLinesText}
     }}
-}}";
+}}
+";
             var fileName = $"{table.Name}GraphType.cs";
             var path = Path.Combine(basePath, fileName);
             AppFunctions.WriteFile(path, code);
@@ -358,17 +357,17 @@ namespace {serverNS}.Gql.Schemas
 
             var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
 
-namespace {serverNS}.Gql.Schemas
+namespace {serverNS}.Gql.Schemas;
+
+public class {entityName}Query : IGqlQuery
 {{
-    public class {entityName}Query : IGqlQuery
+    public void DefineQuery(IObjectGraphType query)
     {{
-        public void DefineQuery(IObjectGraphType query)
-        {{
-            query.AddField(new {entityName}FieldType());
-            query.AddField(new {entityNames}FieldType());
-        }}
+        query.AddField(new {entityName}FieldType());
+        query.AddField(new {entityNames}FieldType());
     }}
-}}";
+}}
+";
             var fileName = $"{table.Name}Query.cs";
             var path = Path.Combine(basePath, fileName);
             AppFunctions.WriteFile(path, code);
@@ -414,79 +413,79 @@ namespace {serverNS}.Gql.Schemas
 
 using GraphQL;
 
-namespace {serverNS}.Gql.Schemas
+namespace {serverNS}.Gql.Schemas;
+
+public class {entityName}Repository: IGqlRepository
 {{
-    public class {entityName}Repository: IGqlRepository
-    {{
-        private readonly IGqlResolver resolver;
+    private readonly IGqlResolver resolver;
         
-        public {entityName}Repository(IGqlResolver resolver)
-        {{
-            this.resolver = resolver;
+    public {entityName}Repository(IGqlResolver resolver)
+    {{
+        this.resolver = resolver;
 
-            resolver.AddHandler(typeof({entityName}SearchRequest), this);
-            resolver.AddHandler(typeof({entityNames}SearchRequest), this);
-        }}
-
-        public Task<{entityName}?> FindOneAsync({entityName}SearchRequest request)
-        {{
-            var query = resolver.ResolveQueryFactory()
-                .Query(nameof({entityName}))
-                .When(request.Columns.AnyItem(), q => q.Select(request.Columns))
-                .Where(q => q.Where(""{pkName}"", request.{pkName}))
-                .FirstOrDefaultAsync<{entityName}?>();
-
-            return query;
-        }}
-
-        public Task<IEnumerable<{entityName}>> FindAsync({entityNames}SearchRequest request)
-        {{
-            var query = resolver.ResolveQueryFactory()
-                .Query(nameof({entityName}))
-                .When(request.Columns != null && request.Columns.AnyItem(), q => q.Select(request.Columns))
-                .When(request.{pkNames} != null && request.{pkNames}.AnyItem(), q => q.WhereIn(nameof({entityName}.{pkName}), request.{pkNames}))
-                .ForPage(request.Page ?? request.DefaultPage, request.PageSize ?? request.DefaultPageSize)
-                .GetAsync<{entityName}>();
-
-            return query;
-        }}
-
-        internal IFieldResolver? GetResolverFindOne()
-        {{
-            var r = new FuncFieldResolver<{entityName}, {entityName}>(context =>
-            {{
-                var request = new {entityName}SearchRequest()
-                {{
-                    {pkName} = context.GetArgument<{pk.GetSystemTypeAlias()}>(nameof({entityName}SearchRequest.{pkName})),
-                    Columns = context.GetSelectColumns()
-                }};
-                var query = resolver.FindOneAsync(request);
-                return new ValueTask<{entityName}?>(query);
-            }});
-
-            return r;
-        }}
-
-        internal IFieldResolver? GetResolverFind()
-        {{
-            var r = new FuncFieldResolver<{entityName}, IEnumerable<{entityName}>>(context =>
-            {{
-                var request = new {entityNames}SearchRequest()
-                {{
-                    {pkNames} = context.GetArgument<{pk.GetSystemTypeAlias()}[]?>(nameof({entityNames}SearchRequest.{pkNames})),
-                    Columns = context.GetSelectColumns(),
-                    Page = context.HasArgument(""Page"") ? context.GetArgument<int>(""Page"") : null,
-                    PageSize = context.HasArgument(""PageSize"") ? context.GetArgument<int>(""PageSize"") : null,
-                }};
-                var query = resolver.FindAsync(request);
-                return new ValueTask<IEnumerable<{entityName}>>(query)!;
-            }});
-
-            return r;
-        }}
-        {childResolverLinesSB}
+        resolver.AddHandler(typeof({entityName}SearchRequest), this);
+        resolver.AddHandler(typeof({entityNames}SearchRequest), this);
     }}
-}}";
+
+    public Task<{entityName}?> FindOneAsync({entityName}SearchRequest request)
+    {{
+        var query = resolver.ResolveQueryFactory()
+            .Query(nameof({entityName}))
+            .When(request.Columns.AnyItem(), q => q.Select(request.Columns))
+            .Where(q => q.Where(""{pkName}"", request.{pkName}))
+            .FirstOrDefaultAsync<{entityName}?>();
+
+        return query;
+    }}
+
+    public Task<IEnumerable<{entityName}>> FindAsync({entityNames}SearchRequest request)
+    {{
+        var query = resolver.ResolveQueryFactory()
+            .Query(nameof({entityName}))
+            .When(request.Columns != null && request.Columns.AnyItem(), q => q.Select(request.Columns))
+            .When(request.{pkNames} != null && request.{pkNames}.AnyItem(), q => q.WhereIn(nameof({entityName}.{pkName}), request.{pkNames}))
+            .ForPage(request.Page ?? request.DefaultPage, request.PageSize ?? request.DefaultPageSize)
+            .GetAsync<{entityName}>();
+
+        return query;
+    }}
+
+    internal IFieldResolver? GetResolverFindOne()
+    {{
+        var r = new FuncFieldResolver<{entityName}, {entityName}>(context =>
+        {{
+            var request = new {entityName}SearchRequest()
+            {{
+                {pkName} = context.GetArgument<{pk.GetSystemTypeAlias()}>(nameof({entityName}SearchRequest.{pkName})),
+                Columns = context.GetSelectColumns()
+            }};
+            var query = resolver.FindOneAsync(request);
+            return new ValueTask<{entityName}?>(query);
+        }});
+
+        return r;
+    }}
+
+    internal IFieldResolver? GetResolverFind()
+    {{
+        var r = new FuncFieldResolver<{entityName}, IEnumerable<{entityName}>>(context =>
+        {{
+            var request = new {entityNames}SearchRequest()
+            {{
+                {pkNames} = context.GetArgument<{pk.GetSystemTypeAlias()}[]?>(nameof({entityNames}SearchRequest.{pkNames})),
+                Columns = context.GetSelectColumns(),
+                Page = context.HasArgument(""Page"") ? context.GetArgument<int>(""Page"") : null,
+                PageSize = context.HasArgument(""PageSize"") ? context.GetArgument<int>(""PageSize"") : null,
+            }};
+            var query = resolver.FindAsync(request);
+            return new ValueTask<IEnumerable<{entityName}>>(query)!;
+        }});
+
+        return r;
+    }}
+    {childResolverLinesSB}
+}}
+";
             var fileName = $"{table.Name}Repository.cs";
             var path = Path.Combine(basePath, fileName);
             AppFunctions.WriteFile(path, code);

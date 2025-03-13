@@ -30,22 +30,21 @@
 
             var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
 
-namespace {serverNS}.Services
+namespace {serverNS}.Services;
+
+public partial class EntitySetBuilder
 {{
-    public partial class EntitySetBuilder
+    partial void AddCustom(ODataConventionModelBuilder builder);
+
+    public static ODataConventionModelBuilder AddAll(ODataConventionModelBuilder builder)
     {{
-        partial void AddCustom(ODataConventionModelBuilder builder);
-
-        public static ODataConventionModelBuilder AddAll(ODataConventionModelBuilder builder)
-        {{
-            var esBuilder = new EntitySetBuilder();
+        var esBuilder = new EntitySetBuilder();
 {addfunc}
-            esBuilder.AddCustom(builder);
+        esBuilder.AddCustom(builder);
 
-            return builder;
-        }}
-{methods}
+        return builder;
     }}
+{methods}
 }}
 
 #pragma warning restore CS8618, IDE1006";

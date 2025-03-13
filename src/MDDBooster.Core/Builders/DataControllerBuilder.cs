@@ -41,14 +41,13 @@ using Iyu.Server.OData.Controllers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OData.Query;
 
-namespace {serverNS}.Controllers
+namespace {serverNS}.Controllers;
+public partial class ODataController(IDataContext data) : ODataControllerBase(data)
 {{
-    public partial class ODataController(IDataContext data) : ODataControllerBase(data)
-    {{
-        new protected readonly DataContext data = (DataContext)data;
+    new protected readonly DataContext data = (DataContext)data;
 {methodLinesText}
-    }}
-}}";
+}}
+";
 
             var text = code.Replace("\t", "    ");
             var path = Path.Combine(basePath, $"ODataController.cs");

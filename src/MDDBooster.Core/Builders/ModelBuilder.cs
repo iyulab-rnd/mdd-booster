@@ -312,13 +312,13 @@ namespace MDDBooster.Builders
 
             var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
 
-namespace {ns}.Entity
+namespace {ns}.Entity;
+
+public partial interface {className}{baseLine}
 {{
-    public partial interface {className}{baseLine}
-    {{
-        {propertyLinesText}
-    }}
-}}";
+    {propertyLinesText}
+}}
+";
             code = code.Replace("\t", "    ");
             var path = Path.Combine(basePath, $"{className}.cs");
             Functions.FileWrite(path, code);
@@ -386,13 +386,14 @@ namespace {ns}.Entity
             {
                 code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
 
-namespace {ns}.Entity
-{{{enumSyntax}
-    public abstract partial class {className}{baseLine}
-    {{
-		{propertyLinesText}
-    }}
-}}";
+namespace {ns}.Entity;
+
+{enumSyntax}
+public abstract partial class {className}{baseLine}
+{{
+	{propertyLinesText}
+}}
+";
             }
             else if (meta is TableMeta tableMeta)
             {
@@ -407,17 +408,18 @@ namespace {ns}.Entity
                 var attributesText = string.Join("\r\n\t", attributes);
                 code = $@"// {Constants.NO_NOT_EDIT_MESSAGE}
 
-namespace {ns}.Entity
-{{{enumSyntax}
-    /// <summary>
-    /// {summary}
-    /// </summary>
-    {attributesText}
-    public partial class {className}{baseLine}
-    {{
-		{propertyLinesText}
-    }}
-}}";
+namespace {ns}.Entity;
+
+{enumSyntax}
+/// <summary>
+/// {summary}
+/// </summary>
+{attributesText}
+public partial class {className}{baseLine}
+{{
+	{propertyLinesText}
+}}
+";
             }
             else
                 throw new NotImplementedException();
