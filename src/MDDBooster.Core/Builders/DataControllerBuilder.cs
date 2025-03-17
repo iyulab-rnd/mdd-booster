@@ -21,16 +21,16 @@
                 var summary = $"Get {name}{labelText} with odata query";
                 var returns = $@"{{ ""@odata.context"": ""{{host}}/$data/$metadata#{name}"", ""value"": [ {{...}} ] }}";
                 var line = $@"
-        /// <summary>
-        /// {summary}
-        /// </summary>
-        /// <returns>{returns}</returns>
-        [HttpGet(""{name}"")]
-        [EnableQuery]
-        public IEnumerable<{table.Name}> Get{name}()
-        {{
-            return data.{name};
-        }}";
+    /// <summary>
+    /// {summary}
+    /// </summary>
+    /// <returns>{returns}</returns>
+    [HttpGet(""{name}"")]
+    [EnableQuery]
+    public IEnumerable<{table.Name}> Get{name}()
+    {{
+        return data.{name};
+    }}";
                 methodLines.Add(line);
             }
 

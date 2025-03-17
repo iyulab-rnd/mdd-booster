@@ -14,11 +14,11 @@ internal class Program
         var stopwatch = Stopwatch.StartNew();
 
 #if DEBUG
-        args = [@"D:\data\Plands\mdd"];
+        //args = [@"D:\data\Plands\mdd"];
         //args = [@"D:\data\U-Platform\mdd"];
         //args = [@"D:\data\MLoop.AppService\mdd"];
+        args = [@"D:\data\new-connect\mdd"];
 #endif
-
         if (args.Length < 1) args = [Environment.CurrentDirectory];
 
         var filePath = Path.Combine(args[0], "settings.json");

@@ -1,34 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.Linq;
-using System.Reflection;
-using System.Reflection.Emit;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Linq;
+﻿using System.Text;
 
-namespace MDDBooster.Builders
+namespace MDDBooster.Builders;
+
+public class DataContextBuilder
 {
-    public class DataContextBuilder
+    private readonly IModelMeta[] models;
+
+    public DataContextBuilder(IModelMeta[] models)
     {
-        private readonly IModelMeta[] models;
-
-        public DataContextBuilder(IModelMeta[] models)
-        {
-            this.models = models;
-        }
+        this.models = models;
+    }
 
 
-        public void Build(string modelNS, string ns, string basePath)
-        {
-            var tables = models.OfType<TableMeta>();
-            var dbsetLines = tables.Select(p => $"\t\tpublic DbSet<{p.Name}> {p.Name.ToPlural()} {{ get; set; }}");
-            var dbSet = string.Join(Constants.NewLine, dbsetLines);
+    public void Build(string modelNS, string ns, string basePath)
+    {
+        var tables = models.OfType<TableMeta>();
+        var dbsetLines = tables.Select(p => $"\tpublic DbSet<{p.Name}> {p.Name.ToPlural()} {{ get; set; }}");
+        var dbSet = string.Join(Constants.NewLine, dbsetLines);
 
-            var onModelCreatingText = GetOnModelCreatingText(tables);
+        var onModelCreatingText = GetOnModelCreatingText(tables);
 
-            var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
+        var code = $@"// # {Constants.NO_NOT_EDIT_MESSAGE}
 using Microsoft.Extensions.Logging;
 
 namespace {ns}.Services;
@@ -59,115 +51,141 @@ public partial class DataContext(IHttpContextAccessor httpContextAccessor, DbCon
 }}
 ";
 
-            var text = code.Replace("\t", "    ");
-            var path = Path.Combine(basePath, $"DataContext.cs");
-            Functions.FileWrite(path, text);
-        }
+        var text = code.Replace("\t", "    ");
+        var path = Path.Combine(basePath, $"DataContext.cs");
+        Functions.FileWrite(path, text);
+    }
 
-        private static string GetOnModelCreatingText(IEnumerable<TableMeta> tables)
+    private static string GetOnModelCreatingText(IEnumerable<TableMeta> tables)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine(BuildOneWithManyByFKLines(tables).TrimEnd());
+        sb.AppendLine(BuildEntityToTableLines(tables).TrimEnd());
+        return sb.ToString();
+    }
+
+    private static string BuildOneWithManyByFKLines(IEnumerable<TableMeta> tables)
+    {
+        var sb = new StringBuilder();
+
+        var map = new Dictionary<string, string>()
         {
-            var sb = new StringBuilder();
-            sb.AppendLine(BuildOneWithManyByFKLines(tables).TrimEnd());
-            sb.AppendLine(BuildEntityToTableLines(tables).TrimEnd());
-            return sb.ToString();
-        }
+            { "ON DELETE NO ACTION", "NoAction" },
+            { "ON UPDATE NO ACTION", "NoAction" },
+        };
 
-        private static string BuildOneWithManyByFKLines(IEnumerable<TableMeta> tables)
+        foreach (var table in tables)
         {
-            var sb = new StringBuilder();
-
-            var map = new Dictionary<string, string>()
+            foreach (var fkColumn in table.GetFkColumns())
             {
-                { "ON DELETE NO ACTION", "NoAction" },
-            };
+                var entityName = fkColumn.GetForeignKeyEntityName();
+                var count = table.GetFkColumns().Where(p => p.GetForeignKeyEntityName() == entityName).Count();
+                if (count < 2) continue; // 두개 이상인 것에 대해서만 추가 관계 설정
 
-            foreach (var table in tables)
-            {
-                foreach (var fkColumn in table.GetFkColumns())
+                var name = fkColumn.Name;
+                var objName = Utils.GetNameWithoutKey(name);
+                var manyName = $"{table.Name}{objName.ToPlural()}";
+                if (objName == table.Name)
                 {
-                    var entityName = fkColumn.GetForeignKeyEntityName();
-                    var count = table.GetFkColumns().Where(p => p.GetForeignKeyEntityName() == entityName).Count();
-                    if (count < 2) continue; // 두개 이상인 것에 대해서만 추가 관계 설정
+                    objName += "Item";
+                }
 
-                    var name = fkColumn.Name;
-                    var objName = Utils.GetNameWithoutKey(name);
-                    var manyName = $"{table.Name}{objName.ToPlural()}";
-                    if (objName == table.Name)
+                var deleteOption = "NoAction"; // 기본값
+                var updateOption = "NoAction"; // 기본값
+
+                var option = fkColumn.GetForeignKeyOption();
+                if (option != null)
+                {
+                    if (option.Contains("OnDelete") || option.Contains("OnUpdate"))
                     {
-                        objName += "Item";
-                    }
+                        var parts = option.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                         .Select(p => p.Trim());
 
-                    var option = fkColumn.GetForeignKeyOption();
-                    option ??= fkColumn.NN == true ? "Cascade" : "SetNull";
-                    if (map.TryGetValue(option, out string? value))
+                        foreach (var part in parts)
+                        {
+                            if (part.StartsWith("OnDelete"))
+                            {
+                                deleteOption = part.GetBetween("(", ")");
+                            }
+                            else if (part.StartsWith("OnUpdate"))
+                            {
+                                updateOption = part.GetBetween("(", ")");
+                            }
+                        }
+                    }
+                    else if (map.TryGetValue(option, out string? value))
                     {
-                        option = value;
+                        deleteOption = value;
                     }
+                }
+                else
+                {
+                    deleteOption = fkColumn.NN == true ? "Cascade" : "SetNull";
+                }
 
-                    var line = $@"
+                var line = $@"
             modelBuilder.Entity<{table.Name}>()
                 .HasOne(f => f.{objName})
                 .WithMany(a => a.{manyName})
                 .HasForeignKey(f => f.{name})
-                .OnDelete(DeleteBehavior.{option});";
-                    sb.AppendLine(line);
-                }
+                .OnDelete(DeleteBehavior.{deleteOption});";
+                sb.AppendLine(line);
             }
-
-            return sb.ToString();
         }
 
-        private static string BuildEntityToTableLines(IEnumerable<TableMeta> tables)
+        return sb.ToString();
+    }
+
+    private static string BuildEntityToTableLines(IEnumerable<TableMeta> tables)
+    {
+        var sb = new StringBuilder();
+        foreach (var table in tables)
         {
-            var sb = new StringBuilder();
-            foreach (var table in tables)
+            if (table.GetChildren().Any())
             {
-                if (table.GetChildren().Any())
-                {
-                    var line = @$"
+                var line = @$"
             modelBuilder.Entity<{table.Name}>().ToTable(tb => tb.HasTrigger(""{table.Name}Trigger""));";
-                    sb.AppendLine(line);
-                }
+                sb.AppendLine(line);
+            }
 
-                foreach (var column in table.Columns)
+            foreach (var column in table.Columns)
+            {
+                if (column.FK && column.Name.Contains('_') != true)
                 {
-                    if (column.FK && column.Name.Contains('_') != true)
+                    var sysType = column.GetSystemType();
+                    if (sysType == typeof(string))
                     {
-                        var sysType = column.GetSystemType();
-                        if (sysType == typeof(string))
-                        {
-                            var fkEntityName = column.GetForeignKeyEntityName();
-                            var fkColumnName = column.GetForeignKeyColumnName();
-                            var oneName = Utils.GetVirtualOneName(table, column);
+                        var fkEntityName = column.GetForeignKeyEntityName();
+                        var fkColumnName = column.GetForeignKeyColumnName();
+                        var oneName = Utils.GetVirtualOneName(table, column);
 
-                            var line = @$"
+                        var line = @$"
             modelBuilder.Entity<{fkEntityName}>().HasAlternateKey(p => p.{fkColumnName});";
-                            sb.AppendLine(line);
+                        sb.AppendLine(line);
 
-                            var manyName = Utils.GetVirtualManyName(table);
-                            line = $@"
+                        var manyName = Utils.GetVirtualManyName(table);
+                        line = $@"
             modelBuilder.Entity<{table.Name}>()
                 .HasOne(p => p.{oneName})
                 .WithMany(p => p.{manyName})
                 .HasForeignKey(p => p.{column.Name})
                 .HasPrincipalKey(p => p.{fkColumnName});";
-                            sb.AppendLine(line);
-                        }
-
-                        //var pName = Utils.GetNameWithoutKey(column.Name);
-                        //var byName = Utils.GetVirtualManeName(table, null, null);
-
-                        /*
-                                    // CommonCodeGroup에서 GroupCode를 대체 키로 설정
-
-
-                                    // CommonCode의 GroupCode를 외래 키로 설정
-
-                         */
+                        sb.AppendLine(line);
                     }
+
+                    //var pName = Utils.GetNameWithoutKey(column.Name);
+                    //var byName = Utils.GetVirtualManeName(table, null, null);
+
+                    /*
+                                // CommonCodeGroup에서 GroupCode를 대체 키로 설정
+
+
+                                // CommonCode의 GroupCode를 외래 키로 설정
+
+                     */
                 }
             }
-            return sb.ToString();
         }
+        return sb.ToString();
     }
 }

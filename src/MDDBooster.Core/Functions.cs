@@ -1,9 +1,12 @@
-﻿namespace MDDBooster;
+﻿using System.Diagnostics;
+
+namespace MDDBooster;
 
 public static class Functions
 {
     internal static TableMeta FindTable(string name)
     {
+        Debug.WriteLine($"FindTable: {name}");
         return Resolver.Models?.OfType<TableMeta>().First(p => p.Name == name) ?? throw new Exception($"cannot find table - {name}");
     }
 
