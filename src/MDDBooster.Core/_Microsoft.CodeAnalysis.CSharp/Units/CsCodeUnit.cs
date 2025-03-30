@@ -1,7 +1,6 @@
 ﻿using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis;
 using System.Diagnostics;
-using MDDBooster;
 
 namespace Microsoft.CodeAnalysis.CSharp.Units
 {
@@ -205,7 +204,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Units
 
         public IEnumerable<string> GetInterfaces()
         {
-            return Inherits.Where(Utils.IsInterfaceName);
+            return Inherits
+                .Where(name => !string.IsNullOrEmpty(name))
+                .Where(Utils.IsInterfaceName);
         }
 
         public IEnumerable<string> GetPropertyNames()

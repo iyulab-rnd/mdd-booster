@@ -1,4 +1,6 @@
-﻿namespace MDDBooster.Builders
+﻿using MDDBooster.Models;
+
+namespace MDDBooster.Builders
 {
     public class DataControllerBuilder
     {
@@ -24,8 +26,7 @@
     /// <summary>
     /// {summary}
     /// </summary>
-    /// <returns>{returns}</returns>
-    [HttpGet(""{name}"")]
+        [HttpGet(""{name}"")]
     [EnableQuery]
     public IEnumerable<{table.Name}> Get{name}()
     {{

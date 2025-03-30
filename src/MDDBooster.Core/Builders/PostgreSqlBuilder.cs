@@ -1,4 +1,6 @@
-﻿namespace MDDBooster.Builders;
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace MDDBooster.Builders;
 
 public class PostgreSqlBuilder : BuilderBase
 {
@@ -240,6 +242,12 @@ GO";
                 " ON DELETE SET NULL";
         }
 
+        // 특수 처리: Message 테이블의 Parent_id 및 ThreadRoot_id 필드는 설계서에 따라 ON DELETE NO ACTION 적용
+        if (Name == "Message" && (c.Name == "Parent_id" || c.Name == "ThreadRoot_id"))
+        {
+            onDeleteSyntax = " ON DELETE NO ACTION";
+        }
+
         // Add semicolon before GO
         var code = $@"ALTER TABLE [dbo].[{Name}] ADD CONSTRAINT [FK_{Name}_{c.Name}] FOREIGN KEY ([{c.Name}])
 REFERENCES [dbo].[{fkTable}]([{cName}]){onDeleteSyntax}{onUpdateSyntax};
@@ -249,7 +257,11 @@ GO";
 
     private string OutputIndexLine(ColumnMeta c)
     {
-        return $@"CREATE INDEX ""IX_{Name}_{c.Name}"" ON ""{Name}""(""{c.Name}"" ASC);";
+        // 고유한 인덱스 이름 생성 (단일 컬럼)
+        var indexName = $"IX_{Name}_{c.Name}";
+
+        return $@"CREATE NONCLUSTERED INDEX [{indexName}] ON [dbo].[{Name}]([{c.Name}] ASC)
+GO";
     }
 
     private string OutputColumnLIne(ColumnMeta c)
@@ -307,12 +319,17 @@ GO";
             }
 
             if (defaultValue.Contains("@by"))
-                defaultValue = "'@system'";
-
+            {
+                if (c.GetSystemType() == typeof(string))
+                {
+                    defaultValue = "'@system'";
+                }
+            }
             else if (defaultValue.Contains("@now"))
                 defaultValue = "NOW()";
 
-            output += $" DEFAULT {defaultValue}";
+            if (string.IsNullOrEmpty(defaultValue) != true)
+                output += $" DEFAULT {defaultValue}";
         }
 
         return output;

@@ -1,187 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace MDDBooster;
-
-public interface IModelMeta
-{
-    string Name { get; }
-    string Headline { get; }
-    string Body { get; }
-}
-
-public static class ModelMetaExtensions
-{
-    public static string[] GetInterfaceOrInherits(this IModelMeta meta)
-    {
-        return meta.Headline
-            .Right(":")
-            .Split(",")
-            .Where(p => p.Length > 0)
-            .Select(p => p.Trim())
-            .Where(n => n[0] >= 'A' && n[0] <= 'Z')
-            .ToArray();
-    }
-}
-
-public abstract class ModelMetaBase : IModelMeta
-{
-    public string Name { get; }
-    public string Headline { get; }
-    public string Body { get; }
-
-    public string[] Extensions { get; internal set; }
-    public InterfaceMeta[]? Interfaces { get; internal set; }
-    public AbstractMeta? Abstract { get; internal set; }
-
-    public string[] InterfaceNames { get; private set; } = [];
-
-    public string? AbstractName 
-    { 
-        get => abstractName ?? Abstract?.Name; 
-        private set => abstractName = value; 
-    }
-
-    protected ModelMetaBase(string name, string headline, string body)
-    {
-        Headline = headline;
-        Body = body;
-        Name = name;
-
-        if (headline.GetBetween("(", ")") is string s && s.Length > 0)
-        {
-            Label = s.Trim();
-        }
-
-        if (headline.Right(":") is string right && right.Length > 0)
-        {
-            var line = Functions.GetConentLine(right);
-            var extensions = new List<string>();
-            var interfaces = new List<string>();
-            foreach(var item in line.Split(","))
-            {
-                var itemName = item.Trim();
-                if (itemName.StartsWith('@'))
-                    extensions.Add(itemName);
-
-                else if (itemName.StartsWith('I') && itemName[1] >= 'A' && itemName[1] <= 'Z')
-                    interfaces.Add(itemName);
-
-                else
-                    AbstractName = itemName;
-            }
-
-            this.Extensions = [.. extensions];
-            this.InterfaceNames = [.. interfaces];
-        }
-    }
-
-    private ColumnMeta[]? _Columns;
-    private ColumnMeta[]? _FullColumns;
-    private string? abstractName;
-
-    public string Label { get; private set; }
-    public ColumnMeta[] Columns => _Columns ??= BuildColumns();
-    public ColumnMeta[] FullColumns => _FullColumns ??= BuildFullColumns();
-
-    public bool IsAbstract => this is AbstractMeta;
-
-    protected virtual ColumnMeta[] BuildColumns()
-    {
-        var list = new List<ColumnMeta>();
-
-        foreach (Match m in Regex.Matches(Body, @"\-\s+\w+.*").Cast<Match>())
-        {
-            var c = new ColumnMeta(m.Value);
-            list.Add(c);
-        }
-
-        return list.ToArray();
-    }
-
-    protected virtual ColumnMeta[] BuildFullColumns()
-    {
-        var list = new List<ColumnMeta>();
-
-        foreach (Match m in Regex.Matches(Body, @"\-\s+\w+.*").Cast<Match>())
-        {
-            var c = new ColumnMeta(m.Value);
-            list.Add(c);
-        }
-
-        var allNames = list.Select(p => p.Name);
-        var interfaceColumns = Interfaces?.SelectMany(p => p.FullColumns);
-        var abstractColumns = Abstract?.FullColumns;
-
-        var items = list.AsEnumerable();
-
-        if (interfaceColumns != null)
-            items = items.Concat(interfaceColumns.Where(p => allNames.Contains(p.Name) != true));
-
-        if (abstractColumns != null)
-            items = items.Concat(abstractColumns.Where(p => allNames.Contains(p.Name) != true));
-
-        return items.ToArray();
-    }
-
-    internal string[][] GetUniqueMultiples()
-    {
-        var matches = Regex.Matches(this.Body, @"\-\s*\@unique\:\s*(.*)(?:\r|$)");
-        var line = string.Join(string.Empty, matches.Select(p => p.Groups[1].Value));
-        var m_values = Regex.Matches(line, @"\((.*?)\)");
-        var values = m_values.Select(p => p.Groups[1].Value);
-        var list = new List<string[]>();
-
-        foreach (var value in values)
-        {
-            var fields = value.Split(",").Select(p => p.Trim());
-            foreach(var field in fields)
-            {
-                var column = Columns.FirstOrDefault(p => p.Name == field) ?? throw new Exception($"Cannot find column - {field}");
-            }
-            list.Add(fields.ToArray());
-        }
-        return list.ToArray();
-    }
-
-    internal bool IsDefault() => this.Headline.Contains("@default");
-
-    internal ColumnMeta GetPKColumn()
-    {
-        var pkColumn = this.FullColumns.FirstOrDefault(p => p.PK);
-        return pkColumn == null ? throw new Exception($"Cannot find PK Column - {this.Name}") : pkColumn;
-    }
-}
-
-public class InterfaceMeta : ModelMetaBase
-{
-    public InterfaceMeta(string name, string headline, string body) : base(name, headline, body)
-    {
-    }
-}
-
-public class AbstractMeta : ModelMetaBase
-{
-    public AbstractMeta(string name, string headline, string body) : base(name, headline, body)
-    {
-    }
-}
-
-public class TableMeta : ModelMetaBase
-{
-    public TableMeta(string name, string headline, string body) : base(name, headline, body)
-    {
-    }
-
-    public IEnumerable<TableMeta> GetChildren()
-    {
-        return Functions.FindChildren(this);
-    }
-
-    internal IEnumerable<ColumnMeta> GetFkColumns()
-    {
-        return this.Columns.Where(p => p.FK);
-    }
-}
+namespace MDDBooster.Models;
 
 public class ColumnMeta
 {
@@ -270,7 +89,7 @@ public class ColumnMeta
     public bool PK { get; private set; } // primary key
     public bool FK { get; private set; } // foreign key
     public bool UQ { get; private set; } // unique
-    public bool UI { get; private set; } // use index
+    public bool UI { get; private set; } // use index (통합된 인덱스 플래그)
     public bool? NN { get; private set; } // not null
     public string? Size { get; private set; }
     public string? Default { get; private set; }
@@ -281,6 +100,7 @@ public class ColumnMeta
     public string? Description { get; private set; }
     public string? Comment { get; private set; }
     public bool IsNullable => NN == false;
+    public List<IndexMeta> Indexes { get; private set; } = new List<IndexMeta>();
 
     public Type GetSystemType()
     {
@@ -339,7 +159,7 @@ public class ColumnMeta
 
     internal string? GetSize()
     {
-        if (Size != null) 
+        if (Size != null)
             return Size;
 
         else
@@ -394,8 +214,9 @@ public class ColumnMeta
         else
         {
             this.Label = label;
+            this.ShortName = label;
         }
-        
+
         if (name.EndsWith('?'))
         {
             this.NN = false;
@@ -425,7 +246,7 @@ public class ColumnMeta
             }
             else
             {
-                defaultText = defaultText.LeftOr("[").LeftOr("//");
+                defaultText = defaultText.LeftOr("[").LeftOr("//").LeftOr("/*");
                 this.Default = defaultText.Trim();
             }
         }
@@ -444,12 +265,17 @@ public class ColumnMeta
 
         ParseOptions(lineText);
         ParseAttribtes(lineText);
+        ParseIndex(lineText);
+        ParseComments(lineText);
 
         if (this.IsNotNull() && string.IsNullOrWhiteSpace(this.Default))
         {
             if (this.Attributes != null && this.Attributes.FirstOrDefault(p => p.Name == "Insert") is AttributeMeta insertAttr)
             {
-                this.Default = insertAttr.Value;
+                if (this.GetSystemType() == typeof(string))
+                {
+                    this.Default = insertAttr.Value;
+                }
             }
         }
 
@@ -506,10 +332,11 @@ public class ColumnMeta
                 }
                 else if (string.Equals(attr.Name, "UI", StringComparison.OrdinalIgnoreCase) ||
                          string.Equals(attr.Name, "IDX", StringComparison.OrdinalIgnoreCase) ||
-                         string.Equals(attr.Name, "Index", StringComparison.OrdinalIgnoreCase))
+                         string.Equals(attr.Name, "Index", StringComparison.OrdinalIgnoreCase) ||
+                         string.Equals(attr.Name, "IX", StringComparison.OrdinalIgnoreCase))
                 {
                     this.UI = true;
-                    // Don't add UI/IDX attributes to the collection
+                    // Don't add UI/IDX/IX attributes to the collection
                 }
                 else if (string.Equals(attr.Name, "PK", StringComparison.OrdinalIgnoreCase))
                 {
@@ -527,15 +354,55 @@ public class ColumnMeta
 
         if (this.Description == null && lineText.Contains('#'))
         {
-            this.Description = lineText.Right("#").LeftOr("//").Trim();
-        }
-
-        if (this.Comment == null && lineText.Contains("//"))
-        {
-            this.Comment = lineText.Right("//").Trim();
+            this.Description = lineText.Right("#").LeftOr("//").LeftOr("/*").Trim();
         }
 
         this.Attributes = attributes;
+    }
+
+    private void ParseComments(string lineText)
+    {
+        // Parse block comments /* */
+        var blockCommentMatch = Regex.Match(lineText, @"/\*(.*?)\*/");
+        if (blockCommentMatch.Success)
+        {
+            this.Comment = blockCommentMatch.Groups[1].Value.Trim();
+        }
+        // Parse line comments //
+        else if (lineText.Contains("//"))
+        {
+            this.Comment = lineText.Right("//").Trim();
+        }
+    }
+
+    private void ParseIndex(string lineText)
+    {
+        // 단일 컬럼 인덱스를 위한 @index 구문 파싱
+        var singleIndexMatches = Regex.Matches(lineText, @"@index:\s*\[(.*?)\]\s*(?:\[([^\]]*)\])?");
+        foreach (Match match in singleIndexMatches)
+        {
+            var columnName = match.Groups[1].Value.Trim();
+
+            // 현재 컬럼을 참조하는 경우만 처리
+            if (columnName == this.Name)
+            {
+                // 인덱스 이름이 "IX"인 경우 null로 설정하여 자동 이름 생성 로직 사용
+                var indexName = match.Groups.Count > 2 && match.Groups[2].Success
+                    ? match.Groups[2].Value.Trim()
+                    : null;
+
+                if (indexName == "IX")
+                {
+                    indexName = null;
+                }
+
+                Indexes.Add(new IndexMeta
+                {
+                    Columns = new List<string> { this.Name },
+                    Name = indexName
+                });
+            }
+        }
     }
 
     internal bool IsNotNull() => this.NN == true;
@@ -574,11 +441,12 @@ public class ColumnMeta
             }
             else if (option.StartsWith("FK", StringComparison.OrdinalIgnoreCase))
                 this.FK = true;
-
             else if (option.Equals("UQ", StringComparison.OrdinalIgnoreCase) || option.Equals("unique", StringComparison.OrdinalIgnoreCase))
                 this.UQ = true;
-
-            else if (option.Equals("UI", StringComparison.OrdinalIgnoreCase) || option.Equals("IDX", StringComparison.OrdinalIgnoreCase) || option.Equals("index", StringComparison.OrdinalIgnoreCase))
+            else if (option.Equals("UI", StringComparison.OrdinalIgnoreCase) ||
+                     option.Equals("IDX", StringComparison.OrdinalIgnoreCase) ||
+                     option.Equals("index", StringComparison.OrdinalIgnoreCase) ||
+                     option.Equals("IX", StringComparison.OrdinalIgnoreCase))
                 this.UI = true;
         }
     }
@@ -592,7 +460,7 @@ public class ColumnMeta
     internal bool IsEnumValue() => !IsEnumKey();
 
     internal string GetEnumTypeName()
-    {   
+    {
         var name = this.LineText.Right("name:").LeftOr(",").LeftOr(")").Trim();
         if (string.IsNullOrEmpty(name))
         {
@@ -629,7 +497,7 @@ public class ColumnMeta
         if (LineText.Contains("FK:"))
         {
             var s = LineText.GetBetween("FK:", "]");
-            var name =  s.LeftOr(",");
+            var name = s.LeftOr(",");
             ret = name.Contains('.') ? name.Left(".") : name.LeftOr("_");
         }
         else if (Name.Contains('_'))
@@ -668,68 +536,5 @@ public class ColumnMeta
         }
         else
             return null;
-    }
-}
-
-public class AttributeMeta
-{
-    public required string Name { get; set; }
-    public string? Value { get; set; }
-    public required string Line { get; set; }
-
-    internal static AttributeMeta Build(string line)
-    {
-        string name;
-        string? value = null;
-
-        if (line.Contains('('))
-        {
-            name = line.Left("(").Trim();
-            value = line.GetBetween("(", ")").Trim();
-        }
-        else if (line.Contains(':'))
-        {
-            name = line.Left(":").Trim();
-            value = line.Right(":").Trim();
-        }
-        else
-        {
-            name = line;
-        }
-
-        return new AttributeMeta()
-        {
-            Name = name,
-            Value = value,
-            Line = line
-        };
-    }
-}
-
-public static class ModelMetaFactory
-{
-    internal static IModelMeta? Create(string text)
-    {
-        var ndxHeadline = text.IndexOf("\r\n");
-        if (ndxHeadline < 0) ndxHeadline = text.Length;
-
-        var headline = text[..ndxHeadline];
-        var body = text[ndxHeadline..];
-
-        var name = headline.RegexReturn(@"\#\#\s+(\w+)", 1);
-
-        if (string.IsNullOrEmpty(name)) return null;
-
-        IModelMeta model;
-        if (Utils.IsInterfaceName(name))
-            model = new InterfaceMeta(name, headline, body);
-
-        else if (Utils.IsAbstract(headline))
-            model = new AbstractMeta(name, headline, body);
-
-        else
-            model = new TableMeta(name, headline, body);
-
-        return model;
     }
 }

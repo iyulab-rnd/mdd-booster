@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using MDDBooster.Models;
+using System.Text;
 
 namespace MDDBooster.Builders;
 
@@ -29,12 +30,16 @@ public abstract class ModelBuilder : BuilderBase
 
         var nullable = c.NN == null || (bool)c.NN == false ? "?" : string.Empty;
         var required = c.NN != null && c.NN == true ? "required " : string.Empty;
-
         var defaultText = string.Empty;
         if (string.IsNullOrWhiteSpace(c.Default) != true)
         {
             if (c.Default.Contains("@by"))
-                defaultText = $" = {c.Default};";
+            {
+                if (sysType == typeof(string))
+                {
+                    defaultText = $" = {c.Default};";
+                }
+            }
 
             else if (c.Default.Contains("@now"))
                 defaultText = $" = DateTime.Now;";
@@ -254,7 +259,7 @@ public abstract class ModelBuilder : BuilderBase
         if (this.meta is TableMeta table)
         {
             var children = table.GetChildren();
-            foreach(var child in children)
+            foreach (var child in children)
             {
                 var fkColumns = child.GetFkColumns().Where(p => p.GetForeignKeyEntityName() == table.Name);
                 if (fkColumns.Any())
@@ -282,15 +287,23 @@ public abstract class ModelBuilder : BuilderBase
                                 name = child.Name + "Item";
                             }
 
-                            // DataContext 에서 관계설정하는 것으로 변경됨.
-                            //                        var line = $@"[InverseProperty(nameof({child.Name}.{name}))]
-                            //public virtual ICollection<{child.Name}>? {child.Name}{propertyName} {{ get; set; }}";
-
                             var line = $@"public virtual ICollection<{child.Name}>? {child.Name}{propertyName} {{ get; set; }}";
                             lines.Add(line);
                         }
                     }
                 }
+            }
+
+            // 자기 참조 관계 처리
+            var selfReferencingColumns = table.GetFkColumns()
+                .Where(p => p.GetForeignKeyEntityName() == table.Name);
+
+            foreach (var fkColumn in selfReferencingColumns)
+            {
+                // EntityRelationshipHelper 클래스 사용
+                var collectionName = EntityRelationshipHelper.DetermineCollectionPropertyName(table.Name, fkColumn.Name);
+                var line = $@"public virtual ICollection<{table.Name}>? {collectionName} {{ get; set; }}";
+                lines.Add(line);
             }
         }
         return lines;

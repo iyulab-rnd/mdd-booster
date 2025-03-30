@@ -4,7 +4,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace MDDBooster
+namespace MDDBooster.Helpers
 {
     internal static class StringHelper
     {
@@ -161,9 +161,7 @@ namespace MDDBooster
         /// <item>언더스코어('_')는 제거되며, 그 다음 문자는 대문자로 변환됩니다.</item>
         /// </list>
         /// </remarks>
-        /// <param name="value">카멜 케이스로 변환할 문자열입니다.</param>
-        /// <returns>카멜 케이스로 변환된 문자열을 반환합니다. 입력이 null이거나 비어있는 경우 그대로 반환됩니다.</returns>
-        /// <example>
+                        /// <example>
         /// 사용 예:
         /// <code>
         /// string result1 = "SID".ToCamel(); // 결과: "sid"
@@ -264,11 +262,11 @@ namespace MDDBooster
         /// <summary>
         /// 복수 이름이면 True
         /// </summary>
-        public static bool IsPlural(this string name) => (new Pluralizer()).IsPlural(name);
+        public static bool IsPlural(this string name) => new Pluralizer().IsPlural(name);
         /// <summary>
         /// 단수 이름이면 True
         /// </summary>
-        public static bool IsSingular(this string name) => (new Pluralizer()).IsSingular(name);
+        public static bool IsSingular(this string name) => new Pluralizer().IsSingular(name);
 
     }
 }

@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using MDDBooster.Models;
+using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using System.Net;

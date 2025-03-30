@@ -1,4 +1,6 @@
-﻿namespace MDDBooster.Builders
+﻿using MDDBooster.Models;
+
+namespace MDDBooster.Builders
 {
     public class EntitySetBuilder
     {

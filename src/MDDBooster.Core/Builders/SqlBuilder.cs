@@ -1,4 +1,6 @@
-﻿namespace MDDBooster.Builders;
+﻿using MDDBooster.Models;
+
+namespace MDDBooster.Builders;
 
 public class SqlBuilder : BuilderBase
 {
@@ -11,13 +13,30 @@ public class SqlBuilder : BuilderBase
 #if DEBUG
         if (this.meta.Name == "Plan")
         {
-            
+
         }
 #endif
         var columnLines = FullColumns.Select(p => OutputColumnLine(p));
         var columnLinesText = string.Join("\r\n\t", columnLines);
 
-        var indexLines = FullColumns.Where(p => p.UI).Select(p => OutputIndexLine(p));
+        // 인덱스 생성
+        var indexLines = new List<string>();
+
+        // UI로 통합된 인덱스 속성을 가진 컬럼에 대한 인덱스
+        foreach (var column in FullColumns.Where(p => p.UI))
+        {
+            indexLines.Add(OutputIndexLine(column));
+        }
+
+        // @index 지시문을 사용한 인덱스
+        if (meta is TableMeta tableMeta)
+        {
+            foreach (var index in tableMeta.GetIndexes())
+            {
+                indexLines.Add(OutputMultiColumnIndexLine(index));
+            }
+        }
+
         var indexLinesText = string.Join(Constants.NewLine, indexLines);
 
         var fkLines = FullColumns.Where(p => p.FK).Select(p => OutputFKLine(p));
@@ -78,14 +97,40 @@ GO{nullableUniqueLinesText}";
 
         foreach (var uniqueMultiple in uniqueMultiples)
         {
-            var nm = string.Join(string.Empty, uniqueMultiple);
+            var nm = string.Join("_", uniqueMultiple);
             var fields = uniqueMultiple.Select(p => $"[{p}] ASC");
             var fieldsText = string.Join(", ", fields);
             var line = $"CONSTRAINT [UK_{Name}_{nm}] UNIQUE NONCLUSTERED ({fieldsText})";
-            list.Add(line); 
+            list.Add(line);
         }
 
         return list.ToArray();
+    }
+
+    private string OutputIndexLine(ColumnMeta c)
+    {
+        // 고유한 인덱스 이름 생성 (단일 컬럼)
+        var indexName = $"IX_{Name}_{c.Name}";
+
+        return $@"CREATE NONCLUSTERED INDEX [{indexName}] ON [dbo].[{Name}]([{c.Name}] ASC)
+GO";
+    }
+
+    private string OutputMultiColumnIndexLine(IndexMeta index)
+    {
+        var columns = index.Columns.Select(c => $"[{c}] ASC");
+        var columnsText = string.Join(", ", columns);
+
+        // 사용자 지정 인덱스 이름이 있으면 사용, 없으면 테이블명과 컬럼명 조합으로 생성
+        var indexName = index.Name;
+        if (string.IsNullOrEmpty(indexName))
+        {
+            // 컬럼명을 _ 로 연결하여 인덱스 이름 생성
+            indexName = $"IX_{Name}_{string.Join("_", index.Columns)}";
+        }
+
+        return $@"CREATE NONCLUSTERED INDEX [{indexName}] ON [dbo].[{Name}]({columnsText})
+GO";
     }
 
     private object OutputFKLine(ColumnMeta c)
@@ -167,17 +212,17 @@ GO";
                 " ON DELETE SET NULL";
         }
 
+        // 특수 처리: Message 테이블의 Parent_id 및 ThreadRoot_id 필드는 설계서에 따라 ON DELETE NO ACTION 적용
+        if (Name == "Message" && (c.Name == "Parent_id" || c.Name == "ThreadRoot_id"))
+        {
+            onDeleteSyntax = " ON DELETE NO ACTION";
+        }
+
         // Add semicolon before GO
         var code = $@"ALTER TABLE [dbo].[{Name}] ADD CONSTRAINT [FK_{Name}_{c.Name}] FOREIGN KEY ([{c.Name}])
 REFERENCES [dbo].[{fkTable}]([{cName}]){onDeleteSyntax}{onUpdateSyntax};
 GO";
         return code;
-    }
-
-    private string OutputIndexLine(ColumnMeta c)
-    {
-        return $@"CREATE NONCLUSTERED INDEX [IX_{Name}_{c.Name}] ON [{Name}]([{c.Name}] ASC)
-GO";
     }
 
     private static string OutputColumnLine(ColumnMeta c)
@@ -230,8 +275,12 @@ GO";
             }
 
             if (defaultValue.Contains("@by", StringComparison.OrdinalIgnoreCase))
-                defaultValue = "'@system'";
-
+            {
+                if (c.GetSystemType() == typeof(string))
+                    defaultValue = "'@system'";
+                else
+                    defaultValue = null;
+            }
             else if (defaultValue.Contains("@now", StringComparison.OrdinalIgnoreCase))
                 defaultValue = "GETDATE()";
 
@@ -241,7 +290,8 @@ GO";
             else if (defaultValue.Contains("false", StringComparison.OrdinalIgnoreCase))
                 defaultValue = "0";
 
-            output += $" DEFAULT {defaultValue}";
+            if (string.IsNullOrEmpty(defaultValue) != true)
+                output += $" DEFAULT {defaultValue}";
         }
 
         var comment = c.Label == c.Name ? null : c.Label;
@@ -253,6 +303,15 @@ GO";
             }
             comment += c.Comment;
         }
+        else if (c.Description != null)
+        {
+            if (comment != null)
+            {
+                comment += ": ";
+            }
+            comment += c.Description;
+        }
+
         if (comment != null)
         {
             output += $", -- {comment}";

@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using MDDBooster.Models;
+using System.Diagnostics;
 
 namespace MDDBooster;
 
