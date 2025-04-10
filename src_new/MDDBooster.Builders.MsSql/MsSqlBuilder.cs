@@ -8,7 +8,7 @@ public class MsSqlBuilder : IBuilder
     /// <summary>
     /// Builder type identifier
     /// </summary>
-    public string BuilderType => "MsSql";
+    public string BuilderType => "DatabaseProject";
 
     /// <summary>
     /// Create a builder config instance specific to this builder
@@ -20,20 +20,19 @@ public class MsSqlBuilder : IBuilder
             ProjectPath = string.Empty,
             TablePath = "dbo/Tables_",
             GenerateIndividualFiles = true,
-            GenerateCompleteFile = true,
-            SchemaOnly = false,
+            SchemaOnly = true,
             UseCreateIfNotExists = true,
             IncludeIndexes = true,
-            ClearOutputDirectoryBeforeGeneration = true // Add default for new property
+            ClearOutputDirectoryBeforeGeneration = true,
+            GenerateTriggers = false,
+            GenerateForeignKeys = true,
+            CascadeDelete = true
         };
     }
 
     /// <summary>
     /// Process an MDD document with the provided configuration
     /// </summary>
-    /// <param name="document">The document to process</param>
-    /// <param name="config">Builder-specific configuration</param>
-    /// <returns>True if successful, false otherwise</returns>
     public bool Process(MDDDocument document, IBuilderConfig config)
     {
         if (!(config is MsSqlBuilderConfig msSqlConfig))
@@ -68,39 +67,25 @@ public class MsSqlBuilder : IBuilder
 
             // Create SQL generator
             AppLog.Debug("Creating SQL script generator");
-            var generator = document.CreateScriptGenerator(msSqlConfig.UseSchemaNamespace, msSqlConfig.SchemaName);
-
-            // Generate complete script if enabled
-            if (msSqlConfig.GenerateCompleteFile)
-            {
-                string sql;
-                if (msSqlConfig.SchemaOnly)
-                {
-                    AppLog.Debug("Generating schema-only SQL");
-                    sql = generator.GenerateScripts()["schema"];
-                }
-                else
-                {
-                    AppLog.Debug("Generating complete SQL");
-                    sql = generator.GenerateCompleteScript();
-                }
-
-                string fileName = Path.GetFileNameWithoutExtension(document.BaseDocument.Namespace);
-                if (string.IsNullOrEmpty(fileName))
-                    fileName = "complete";
-
-                string outputPath = Path.Combine(outputDir, $"{fileName}_complete.sql");
-
-                // Write to file
-                AppLog.Debug("Writing SQL to file: {OutputPath}", outputPath);
-                File.WriteAllText(outputPath, sql);
-                Console.WriteLine($"Complete SQL script written to: {outputPath}");
-            }
+            var scriptGenerator = new MsSqlScriptGenerator(
+                document,
+                msSqlConfig.UseSchemaNamespace,
+                msSqlConfig.SchemaName,
+                msSqlConfig.GenerateTriggers,
+                msSqlConfig.GenerateForeignKeys);
 
             // Generate individual table files if enabled
             if (msSqlConfig.GenerateIndividualFiles)
             {
-                GenerateIndividualTableFiles(document, outputDir, msSqlConfig.SchemaOnly, msSqlConfig.UseSchemaNamespace, msSqlConfig.SchemaName);
+                GenerateIndividualTableFiles(
+                    document,
+                    outputDir,
+                    msSqlConfig.SchemaOnly,
+                    msSqlConfig.UseSchemaNamespace,
+                    msSqlConfig.SchemaName,
+                    msSqlConfig.GenerateTriggers,
+                    msSqlConfig.GenerateForeignKeys,
+                    msSqlConfig.CascadeDelete);
             }
 
             AppLog.Information("MS-SQL generation completed successfully");
@@ -116,7 +101,6 @@ public class MsSqlBuilder : IBuilder
     /// <summary>
     /// Clears all files in the specified directory but leaves the directory structure intact
     /// </summary>
-    /// <param name="directory">Directory path to clear</param>
     private void ClearDirectory(string directory)
     {
         try
@@ -148,7 +132,15 @@ public class MsSqlBuilder : IBuilder
         }
     }
 
-    private static void GenerateIndividualTableFiles(MDDDocument document, string outputDir, bool schemaOnly, bool useSchemaNamespace, string schemaNameOverride)
+    private static void GenerateIndividualTableFiles(
+        MDDDocument document,
+        string outputDir,
+        bool schemaOnly,
+        bool useSchemaNamespace,
+        string schemaNameOverride,
+        bool generateTriggers,
+        bool generateForeignKeys,
+        bool cascadeDelete)
     {
         AppLog.Information("Generating individual table SQL files");
 
@@ -157,33 +149,43 @@ public class MsSqlBuilder : IBuilder
             // Loop through all non-abstract models
             var nonAbstractModels = document.Models.Where(m => !m.BaseModel.IsAbstract).ToList();
 
+            // Create generators
+            string schemaName = useSchemaNamespace ? document.BaseDocument.Namespace : schemaNameOverride;
+            var tableGenerator = new TableDefinitionGenerator(document, schemaName);
+            var indexGenerator = new IndexDefinitionGenerator(document, schemaName);
+            var triggerGenerator = new TriggerDefinitionGenerator(document, schemaName);
+            var foreignKeyGenerator = new ForeignKeyConstraintGenerator(document, schemaName, cascadeDelete);
+
             foreach (var model in nonAbstractModels)
             {
-                // Create a temporary document with just this model
-                var tempDoc = new MDDDocument
+                // Generate SQL for table definition
+                var tableSql = tableGenerator.GenerateTable(model);
+
+                // Add indexes
+                var indexesSql = indexGenerator.GenerateIndexes(model);
+                if (!string.IsNullOrWhiteSpace(indexesSql))
                 {
-                    BaseDocument = new M3LParser.Models.M3LDocument
+                    tableSql += "\n\n-- Indexes\n" + indexesSql;
+                }
+
+                // Add foreign key constraints if enabled
+                if (generateForeignKeys)
+                {
+                    var foreignKeysSql = foreignKeyGenerator.GenerateForeignKeyConstraints(model);
+                    if (!string.IsNullOrWhiteSpace(foreignKeysSql))
                     {
-                        Namespace = document.BaseDocument.Namespace,
-                        Models = new List<M3LParser.Models.M3LModel> { model.BaseModel },
-                        Interfaces = document.BaseDocument.Interfaces,
-                        Enums = document.BaseDocument.Enums
-                    },
-                    Models = new List<MDDModel> { model },
-                    Interfaces = document.Interfaces,
-                    Enums = document.Enums
-                };
+                        tableSql += "\n\n-- Foreign Keys\n" + foreignKeysSql;
+                    }
+                }
 
-                // Generate SQL for just this table
-                var schemaGenerator = new MsSqlSchemaGenerator(tempDoc, useSchemaNamespace, schemaNameOverride);
-                var tableSql = schemaGenerator.GenerateSchema();
-
-                // Add triggers if not schema-only
-                if (!schemaOnly)
+                // Add triggers if not schema-only and triggers are enabled
+                if (!schemaOnly && generateTriggers)
                 {
-                    var triggerGenerator = new MsSqlTriggerGenerator(tempDoc);
-                    var triggers = triggerGenerator.GenerateTriggers();
+                    var sb = new StringBuilder();
+                    triggerGenerator.GenerateInsertTriggers(sb, model);
+                    triggerGenerator.GenerateUpdateTriggers(sb, model);
 
+                    var triggers = sb.ToString();
                     if (!string.IsNullOrWhiteSpace(triggers))
                     {
                         tableSql += "\n\n-- Triggers\n" + triggers;

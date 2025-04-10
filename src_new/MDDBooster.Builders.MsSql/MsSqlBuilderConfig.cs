@@ -21,14 +21,9 @@ public class MsSqlBuilderConfig : IBuilderConfig
     public bool GenerateIndividualFiles { get; set; } = true;
 
     /// <summary>
-    /// Generate a complete file with all tables
-    /// </summary>
-    public bool GenerateCompleteFile { get; set; } = true;
-
-    /// <summary>
     /// Generate schema only (no triggers, etc.)
     /// </summary>
-    public bool SchemaOnly { get; set; } = false;
+    public bool SchemaOnly { get; set; } = true;
 
     /// <summary>
     /// Use CREATE IF NOT EXISTS syntax
@@ -39,6 +34,16 @@ public class MsSqlBuilderConfig : IBuilderConfig
     /// Include indexes in generated SQL
     /// </summary>
     public bool IncludeIndexes { get; set; } = true;
+
+    /// <summary>
+    /// Include foreign key constraints in generated SQL
+    /// </summary>
+    public bool GenerateForeignKeys { get; set; } = true;
+
+    /// <summary>
+    /// Use CASCADE delete for foreign keys
+    /// </summary>
+    public bool CascadeDelete { get; set; } = true;
 
     /// <summary>
     /// Clear all files in the output directory before generating new ones
@@ -53,7 +58,12 @@ public class MsSqlBuilderConfig : IBuilderConfig
     /// <summary>
     /// Use document namespace as schema name
     /// </summary>
-    public bool UseSchemaNamespace { get; set; } = true;
+    public bool UseSchemaNamespace { get; set; } = false;
+
+    /// <summary>
+    /// Generate triggers for framework attributes
+    /// </summary>
+    public bool GenerateTriggers { get; set; } = false;
 
     /// <summary>
     /// Get the full output path for this builder

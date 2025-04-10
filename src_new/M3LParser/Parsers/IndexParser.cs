@@ -12,7 +12,6 @@ public class IndexParser : BaseParser
     /// <summary>
     /// Parse an index definition
     /// </summary>
-    /// <returns>The parsed index or null if line is not an index definition</returns>
     public M3LIndex Parse()
     {
         var currentLine = Context.CurrentLineTrimmed;

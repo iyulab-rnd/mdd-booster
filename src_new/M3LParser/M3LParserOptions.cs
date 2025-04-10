@@ -34,5 +34,5 @@ public class M3LParserOptions
     /// <summary>
     /// Enable or disable inheritance resolution
     /// </summary>
-    public bool ResolveInheritance { get; set; } = true;
+    public bool ResolveInheritance { get; set; } = false; // Changed from true to false to let MDDBooster handle inheritance
 }

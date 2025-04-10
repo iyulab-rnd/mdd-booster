@@ -80,8 +80,6 @@ public static class BuilderManager
     /// <summary>
     /// Create a builder instance by type
     /// </summary>
-    /// <param name="builderType">Builder type identifier</param>
-    /// <returns>Builder instance or null if not found</returns>
     public static IBuilder CreateBuilder(string builderType)
     {
         if (_builderTypes.TryGetValue(builderType, out var type))
@@ -106,8 +104,6 @@ public static class BuilderManager
     /// <summary>
     /// Create a config instance for the specified builder type
     /// </summary>
-    /// <param name="builderType">Builder type identifier</param>
-    /// <returns>Config instance or null if not found</returns>
     public static IBuilderConfig CreateConfig(string builderType)
     {
         var builder = CreateBuilder(builderType);
@@ -117,9 +113,6 @@ public static class BuilderManager
     /// <summary>
     /// Convert a generic config JSON to a typed builder config
     /// </summary>
-    /// <param name="builderType">Builder type identifier</param>
-    /// <param name="jsonElement">JSON element containing config values</param>
-    /// <returns>Typed builder config or null if conversion failed</returns>
     public static IBuilderConfig ConvertConfig(string builderType, JsonElement jsonElement)
     {
         if (!_configTypes.TryGetValue(builderType, out var configType))

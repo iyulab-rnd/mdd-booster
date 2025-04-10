@@ -15,15 +15,14 @@ public class M3LField
     public bool IsPrimaryKey => Attributes.Any(a => a.StartsWith("@primary"));
     public bool IsUnique => Attributes.Any(a => a.StartsWith("@unique"));
     public bool IsRequired => !IsNullable;
-    public bool IsReference => Attributes.Any(a => a.StartsWith("@reference"));
-    public string ReferenceTarget => GetAttributeValue("@reference");
+    public bool IsReference => Attributes.Any(a => RegexHelper.IsReferenceAttribute(a));
+    public string ReferenceTarget => GetReferenceTarget();
 
-    private string GetAttributeValue(string attributeName)
+    private string GetReferenceTarget()
     {
-        var attribute = Attributes.FirstOrDefault(a => a.StartsWith(attributeName));
+        var attribute = Attributes.FirstOrDefault(a => RegexHelper.IsReferenceAttribute(a));
         if (attribute == null) return null;
 
-        var match = Regex.Match(attribute, $@"{attributeName}\(([^)]+)\)");
-        return match.Success ? match.Groups[1].Value : null;
+        return RegexHelper.ExtractReferenceParameter(attribute);
     }
 }

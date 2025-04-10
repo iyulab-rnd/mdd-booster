@@ -19,20 +19,29 @@ public class Settings
     public LoggingSettings Logging { get; set; } = new LoggingSettings();
 
     /// <summary>
+    /// Path to the settings file (used for resolving relative paths)
+    /// </summary>
+    [JsonIgnore]
+    public string SettingsFilePath { get; private set; }
+
+    /// <summary>
     /// Load settings from a JSON file
     /// </summary>
-    /// <param name="filePath">Path to the settings JSON file</param>
-    /// <returns>Loaded settings</returns>
     public static Settings Load(string filePath)
     {
-        if (!File.Exists(filePath))
+        // Convert filePath to absolute path if it's relative
+        string absoluteFilePath = Path.GetFullPath(filePath);
+
+        if (!File.Exists(absoluteFilePath))
         {
+            Console.WriteLine($"Settings file not found at: {absoluteFilePath}");
             var defaultSettings = CreateDefaultSettings();
-            SaveSettings(filePath, defaultSettings);
+            defaultSettings.SettingsFilePath = absoluteFilePath;
+            SaveSettings(absoluteFilePath, defaultSettings);
             return defaultSettings;
         }
 
-        string json = File.ReadAllText(filePath);
+        string json = File.ReadAllText(absoluteFilePath);
         var options = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
@@ -43,6 +52,9 @@ public class Settings
         try
         {
             var settings = JsonSerializer.Deserialize<Settings>(json, options);
+
+            // Set settings file path for relative path resolution
+            settings.SettingsFilePath = absoluteFilePath;
 
             // Ensure we have at least one configuration if deserialization succeeded
             if (settings != null)
@@ -61,6 +73,9 @@ public class Settings
                             ApplyDefaultsToBuilderConfig(builderInfo);
                         }
                     }
+
+                    // Resolve relative paths in MDD configurations
+                    ResolvePaths(settings);
                 }
 
                 return settings;
@@ -72,7 +87,49 @@ public class Settings
             Console.WriteLine("Using default settings instead.");
         }
 
-        return CreateDefaultSettings();
+        var defaultSettings2 = CreateDefaultSettings();
+        defaultSettings2.SettingsFilePath = absoluteFilePath;
+        return defaultSettings2;
+    }
+
+    /// <summary>
+    /// Resolves relative paths in configuration to absolute paths
+    /// </summary>
+    private static void ResolvePaths(Settings settings)
+    {
+        string settingsDirectory = Path.GetDirectoryName(settings.SettingsFilePath);
+
+        foreach (var mddConfig in settings.MddConfigs)
+        {
+            // Resolve MDD file path if it's relative
+            if (!string.IsNullOrEmpty(mddConfig.MddPath) && !Path.IsPathRooted(mddConfig.MddPath))
+            {
+                mddConfig.MddPath = Path.GetFullPath(Path.Combine(settingsDirectory, mddConfig.MddPath));
+                Console.WriteLine($"Resolved MDD path: {mddConfig.MddPath}");
+            }
+
+            // Resolve project paths in builders
+            foreach (var builder in mddConfig.Builders)
+            {
+                if (builder.Config.TryGetValue("projectPath", out var projectPathElement))
+                {
+                    string projectPath = projectPathElement.GetString();
+                    if (!string.IsNullOrEmpty(projectPath) && !Path.IsPathRooted(projectPath))
+                    {
+                        string absoluteProjectPath = Path.GetFullPath(Path.Combine(settingsDirectory, projectPath));
+                        builder.Config["projectPath"] = JsonDocument.Parse($"\"{absoluteProjectPath.Replace("\\", "\\\\")}\"").RootElement;
+                        Console.WriteLine($"Resolved project path: {absoluteProjectPath}");
+                    }
+                }
+            }
+        }
+
+        // Resolve log file path if it's relative
+        if (!string.IsNullOrEmpty(settings.Logging.LogFilePath) && !Path.IsPathRooted(settings.Logging.LogFilePath))
+        {
+            settings.Logging.LogFilePath = Path.GetFullPath(Path.Combine(settingsDirectory, settings.Logging.LogFilePath));
+            Console.WriteLine($"Resolved log file path: {settings.Logging.LogFilePath}");
+        }
     }
 
     /// <summary>
@@ -136,23 +193,23 @@ public class Settings
         {
             MddPath = string.Empty, // Empty string instead of hardcoded path
             Builders = new List<BuilderInfo>
-        {
-            new BuilderInfo
             {
-                Type = "MsSql",
-                Config = new Dictionary<string, JsonElement>
+                new BuilderInfo
                 {
-                    ["projectPath"] = JsonDocument.Parse("\"\"").RootElement, // Empty string instead of hardcoded path
-                    ["tablePath"] = JsonDocument.Parse("\"dbo/Tables_\"").RootElement,
-                    ["generateIndividualFiles"] = JsonDocument.Parse("true").RootElement,
-                    ["generateCompleteFile"] = JsonDocument.Parse("true").RootElement,
-                    ["schemaOnly"] = JsonDocument.Parse("false").RootElement,
-                    ["useCreateIfNotExists"] = JsonDocument.Parse("true").RootElement,
-                    ["includeIndexes"] = JsonDocument.Parse("true").RootElement,
-                    ["clearOutputDirectoryBeforeGeneration"] = JsonDocument.Parse("true").RootElement
+                    Type = "MsSql",
+                    Config = new Dictionary<string, JsonElement>
+                    {
+                        ["projectPath"] = JsonDocument.Parse("\"\"").RootElement, // Empty string instead of hardcoded path
+                        ["tablePath"] = JsonDocument.Parse("\"dbo/Tables_\"").RootElement,
+                        ["generateIndividualFiles"] = JsonDocument.Parse("true").RootElement,
+                        ["generateCompleteFile"] = JsonDocument.Parse("true").RootElement,
+                        ["schemaOnly"] = JsonDocument.Parse("false").RootElement,
+                        ["useCreateIfNotExists"] = JsonDocument.Parse("true").RootElement,
+                        ["includeIndexes"] = JsonDocument.Parse("true").RootElement,
+                        ["clearOutputDirectoryBeforeGeneration"] = JsonDocument.Parse("true").RootElement
+                    }
                 }
             }
-        }
         };
     }
 
@@ -174,52 +231,4 @@ public class Settings
             }
         };
     }
-}
-
-/// <summary>
-/// Configuration for an MDD file to process
-/// </summary>
-public class MddConfig
-{
-    /// <summary>
-    /// Path to the MDD file
-    /// </summary>
-    public string MddPath { get; set; } = string.Empty;
-
-    /// <summary>
-    /// List of builders to apply to this MDD file
-    /// </summary>
-    public List<BuilderInfo> Builders { get; set; } = new List<BuilderInfo>();
-}
-
-/// <summary>
-/// Information about a builder to apply
-/// </summary>
-public class BuilderInfo
-{
-    /// <summary>
-    /// Type of builder
-    /// </summary>
-    public string Type { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Builder configuration (dynamic)
-    /// </summary>
-    public Dictionary<string, JsonElement> Config { get; set; } = new Dictionary<string, JsonElement>();
-}
-
-/// <summary>
-/// Logging settings
-/// </summary>
-public class LoggingSettings
-{
-    /// <summary>
-    /// Enable verbose logging
-    /// </summary>
-    public bool Verbose { get; set; } = false;
-
-    /// <summary>
-    /// Path to the log file (if empty, logs to console only)
-    /// </summary>
-    public string LogFilePath { get; set; } = string.Empty;
 }

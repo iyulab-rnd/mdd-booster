@@ -1,7 +1,7 @@
 ﻿using MDDBooster.Models;
 using MDDBooster.Parsers;
 
-namespace MDDBooster.Builders.MsSql;
+namespace MDDBooster.Builders.MsSql.Parsers;
 
 // Default framework attribute parser for SQL Server
 public class MsSqlAttributeParser : IFrameworkAttributeParser

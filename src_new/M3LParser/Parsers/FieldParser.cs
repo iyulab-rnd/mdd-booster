@@ -12,8 +12,6 @@ public class FieldParser : BaseParser
     /// <summary>
     /// Parse a field definition
     /// </summary>
-    /// <param name="startLine">Line containing the field definition</param>
-    /// <returns>The parsed field or null if line is not a field definition</returns>
     public M3LField Parse()
     {
         var currentLine = Context.CurrentLineTrimmed;
@@ -55,12 +53,31 @@ public class FieldParser : BaseParser
         var typePart = parts[1].Trim();
         AppLog.Debug("Parsing simple field: {FieldName}", field.Name);
 
-        // Parse default value
+        // First extract framework attributes (in square brackets) before processing default values
+        // This ensures framework attributes aren't mistakenly treated as default values
+        if (typePart.Contains('[') && typePart.Contains(']'))
+        {
+            var matches = Regex.Matches(typePart, @"\[([^\]]+)\]");
+            foreach (Match match in matches)
+            {
+                field.FrameworkAttributes.Add(match.Groups[1].Value);
+                AppLog.Debug("Field {FieldName} has framework attribute: {Attribute}", field.Name, match.Groups[1].Value);
+
+                // Remove the framework attribute from the type part to avoid confusion with default values
+                typePart = typePart.Replace(match.Value, "").Trim();
+            }
+        }
+
+        // Parse default value AFTER framework attributes are removed
         if (typePart.Contains('='))
         {
             var defaultParts = typePart.Split('=', 2);
             typePart = defaultParts[0].Trim();
             field.DefaultValue = defaultParts[1].Trim();
+            if (field.DefaultValue.StartsWith('\"') && field.DefaultValue.EndsWith('\"'))
+            {
+                field.DefaultValue = field.DefaultValue[1..^1];
+            }
             AppLog.Debug("Field {FieldName} has default value: {DefaultValue}", field.Name, field.DefaultValue);
         }
 
@@ -78,19 +95,7 @@ public class FieldParser : BaseParser
             }
         }
 
-        // Parse framework attributes
-        if (typePart.Contains('[') && typePart.Contains(']'))
-        {
-            var matches = Regex.Matches(typePart, @"\[([^\]]+)\]");
-            foreach (Match match in matches)
-            {
-                field.FrameworkAttributes.Add(match.Groups[1].Value);
-                AppLog.Debug("Field {FieldName} has framework attribute: {Attribute}", field.Name, match.Groups[1].Value);
-                typePart = typePart.Replace(match.Value, "").Trim();
-            }
-        }
-
-        // Parse type and nullable
+        // Parse type and nullable (after all other components are extracted)
         if (typePart.EndsWith("?"))
         {
             field.IsNullable = true;
@@ -155,7 +160,18 @@ public class FieldParser : BaseParser
 
             // Parse subproperty - remove the leading dashes and trim
             var subProperty = subLine.Substring(1).Trim().Substring(1).Trim();
-            if (subProperty.StartsWith("type:"))
+
+            // Check for framework attributes first (they should be prioritized over other properties)
+            if (subProperty.StartsWith("[") && subProperty.Contains("]"))
+            {
+                var matches = Regex.Matches(subProperty, @"\[([^\]]+)\]");
+                foreach (Match match in matches)
+                {
+                    field.FrameworkAttributes.Add(match.Groups[1].Value);
+                    AppLog.Debug("Field {FieldName} has framework attribute: {Attribute}", field.Name, match.Groups[1].Value);
+                }
+            }
+            else if (subProperty.StartsWith("type:"))
             {
                 ParseTypeProperty(field, subProperty);
             }
@@ -171,7 +187,7 @@ public class FieldParser : BaseParser
             }
             else if (subProperty.Contains('=') && !subProperty.StartsWith("["))
             {
-                // Handle key=value syntax
+                // Handle key=value syntax for properties other than framework attributes
                 var parts = subProperty.Split('=', 2);
                 var key = parts[0].Trim();
                 var value = parts[1].Trim();
@@ -180,16 +196,6 @@ public class FieldParser : BaseParser
                 {
                     field.DefaultValue = value;
                     AppLog.Debug("Field {FieldName} has default value: {DefaultValue}", field.Name, field.DefaultValue);
-                }
-            }
-            else if (subProperty.StartsWith("[") && subProperty.Contains("]"))
-            {
-                // Framework attributes
-                var matches = Regex.Matches(subProperty, @"\[([^\]]+)\]");
-                foreach (Match match in matches)
-                {
-                    field.FrameworkAttributes.Add(match.Groups[1].Value);
-                    AppLog.Debug("Field {FieldName} has framework attribute: {Attribute}", field.Name, match.Groups[1].Value);
                 }
             }
             else

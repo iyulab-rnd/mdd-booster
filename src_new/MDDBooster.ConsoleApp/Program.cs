@@ -8,12 +8,15 @@ using System.Text.Json;
 using MDDBooster.Builders.MsSql;
 using MDDBooster.Models;
 using System.Reflection;
+using MDDBooster.Builders.ModelProject;
 
 namespace MDDBooster.ConsoleApp;
 
 internal class Program
 {
-    private const string DefaultSettingsPath = @"D:\data\U-Platform\mdd\settings.json";
+#if DEBUG
+    private const string DefaultSettingsPath = @"D:\data\ironhive-appservice\mdd\settings.json";
+#endif
 
     static async Task<int> Main(string[] args)
     {
@@ -38,6 +41,9 @@ internal class Program
         {
             try
             {
+                // Display current directory for debugging
+                Console.WriteLine($"Current Directory: {Directory.GetCurrentDirectory()}");
+
                 // Ensure all assemblies are loaded to find builders
                 LoadAllAssemblies();
 
@@ -49,6 +55,7 @@ internal class Program
                 Console.WriteLine($"Available builders: {string.Join(", ", availableBuilders)}");
 
                 // Load application settings from the JSON file
+                // This now correctly resolves all paths
                 var settings = Settings.Load(settingsPath);
 
                 // Initialize logging based on settings
@@ -70,6 +77,7 @@ internal class Program
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine($"Error: {ex.Message}");
+                Console.WriteLine($"Stack Trace: {ex.StackTrace}");
                 Console.ResetColor();
                 Log.Error(ex, "Unhandled exception");
             }
@@ -234,6 +242,8 @@ internal class Program
         catch (Exception ex)
         {
             Log.Error(ex, "Error processing MDD file: {FilePath}", mddConfig.MddPath);
+            Console.WriteLine($"Error processing MDD file: {ex.Message}");
+            Console.WriteLine($"Stack Trace: {ex.StackTrace}");
         }
     }
 
@@ -243,8 +253,11 @@ internal class Program
 
         try
         {
-            // Create parser with SQL options
-            var options = new MDDParserOptions().UseMsSqlBuilder();
+            // Create parser with SQL options and MODEL options
+            var options = new MDDParserOptions()
+                .UseMsSqlBuilder()
+                .UseModelProjectBuilder();
+
             var parser = new MDDBoosterParser(options);
 
             // Parse the file
@@ -264,6 +277,7 @@ internal class Program
         {
             Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine($"Error parsing file: {ex.Message}");
+            Console.WriteLine($"Stack Trace: {ex.StackTrace}");
             Console.ResetColor();
             Log.Error(ex, "Error parsing file: {FilePath}", filePath);
             return null;
@@ -295,6 +309,27 @@ internal class Program
                 return;
             }
 
+            // Ensure the project path exists
+            if (config is IBuilderConfig builderConfig)
+            {
+                string projectPath = builderConfig.ProjectPath;
+                if (!string.IsNullOrEmpty(projectPath) && !Directory.Exists(projectPath))
+                {
+                    Log.Warning("Project directory does not exist: {ProjectPath}. Attempting to create it.", projectPath);
+                    try
+                    {
+                        Directory.CreateDirectory(projectPath);
+                        Log.Information("Created project directory: {ProjectPath}", projectPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error(ex, "Failed to create project directory: {ProjectPath}", projectPath);
+                        Console.WriteLine($"ERROR: Failed to create project directory: {projectPath}. {ex.Message}");
+                        return;
+                    }
+                }
+            }
+
             // Process the document with the builder
             bool success = builder.Process(document, config);
 
@@ -310,6 +345,8 @@ internal class Program
         catch (Exception ex)
         {
             Log.Error(ex, "Error applying builder {BuilderType}", builderInfo.Type);
+            Console.WriteLine($"Error applying builder {builderInfo.Type}: {ex.Message}");
+            Console.WriteLine($"Stack Trace: {ex.StackTrace}");
         }
     }
 }

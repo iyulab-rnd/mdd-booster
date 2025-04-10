@@ -12,7 +12,6 @@ public class MetadataParser : BaseParser
     /// <summary>
     /// Parse a metadata definition
     /// </summary>
-    /// <returns>A tuple containing the key and value of the metadata</returns>
     public (string, object) Parse()
     {
         var currentLine = Context.CurrentLineTrimmed;

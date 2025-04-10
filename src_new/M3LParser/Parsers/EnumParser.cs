@@ -12,8 +12,6 @@ public class EnumParser : BaseParser
     /// <summary>
     /// Parse an enum definition
     /// </summary>
-    /// <param name="definitionLine">Line containing the enum definition</param>
-    /// <returns>The parsed enum</returns>
     public M3LEnum Parse(string definitionLine)
     {
         var enum_ = new M3LEnum();

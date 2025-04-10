@@ -13,7 +13,6 @@ public abstract class BaseParser
     /// <summary>
     /// Initialize a new parser with the given context
     /// </summary>
-    /// <param name="context">Parsing context</param>
     protected BaseParser(ParserContext context)
     {
         Context = context ?? throw new ArgumentNullException(nameof(context));
@@ -42,8 +41,6 @@ public abstract class BaseParser
     /// <summary>
     /// Check if a line is the start of a new definition
     /// </summary>
-    /// <param name="line">Line to check</param>
-    /// <returns>True if the line starts a new definition</returns>
     protected bool IsStartOfDefinition(string line)
     {
         return !string.IsNullOrEmpty(line) && line.StartsWith("##");
@@ -52,8 +49,6 @@ public abstract class BaseParser
     /// <summary>
     /// Check if a line is the end of the current definition
     /// </summary>
-    /// <param name="line">Line to check</param>
-    /// <returns>True if the line ends the current definition</returns>
     protected bool IsEndOfDefinition(string line)
     {
         return IsStartOfDefinition(line) || (line.StartsWith("#") && !line.StartsWith("###"));
@@ -62,8 +57,6 @@ public abstract class BaseParser
     /// <summary>
     /// Check if a line is the start of a section
     /// </summary>
-    /// <param name="line">Line to check</param>
-    /// <returns>True if the line starts a section</returns>
     protected bool IsStartOfSection(string line)
     {
         return !string.IsNullOrEmpty(line) && line.StartsWith("###");
@@ -72,8 +65,6 @@ public abstract class BaseParser
     /// <summary>
     /// Get the section name from a section start line
     /// </summary>
-    /// <param name="line">Line to parse</param>
-    /// <returns>Section name</returns>
     protected string GetSectionName(string line)
     {
         if (!IsStartOfSection(line))
@@ -85,8 +76,6 @@ public abstract class BaseParser
     /// <summary>
     /// Check if a line is a field definition
     /// </summary>
-    /// <param name="line">Line to check</param>
-    /// <returns>True if the line is a field definition</returns>
     protected bool IsFieldDefinition(string line)
     {
         return !string.IsNullOrEmpty(line) && line.TrimStart().StartsWith("-");
@@ -95,8 +84,6 @@ public abstract class BaseParser
     /// <summary>
     /// Parse a list of parameters from a parameter string
     /// </summary>
-    /// <param name="paramString">String containing parameters</param>
-    /// <returns>List of parameter strings</returns>
     protected List<string> ParseParameters(string paramString)
     {
         AppLog.Debug("Parsing parameters: {Params}", paramString);
@@ -141,6 +128,14 @@ public abstract class BaseParser
         if (parameters.Count > 0)
         {
             AppLog.Debug("Parsed {Count} parameters", parameters.Count);
+            foreach (var param in parameters)
+            {
+                AppLog.Debug("  Parameter: {Param}", param);
+            }
+        }
+        else
+        {
+            AppLog.Warning("No parameters parsed from string: {Params}", paramString);
         }
 
         return parameters;
@@ -149,8 +144,6 @@ public abstract class BaseParser
     /// <summary>
     /// Extract attributes from a string
     /// </summary>
-    /// <param name="text">Text containing attributes</param>
-    /// <returns>List of extracted attributes</returns>
     protected List<string> ExtractAttributes(string text)
     {
         var attributes = new List<string>();
@@ -177,8 +170,6 @@ public abstract class BaseParser
     /// <summary>
     /// Extract framework attributes in square brackets
     /// </summary>
-    /// <param name="text">Text containing framework attributes</param>
-    /// <returns>List of framework attributes</returns>
     protected List<string> ExtractFrameworkAttributes(string text)
     {
         var attributes = new List<string>();
@@ -197,7 +188,6 @@ public abstract class BaseParser
     /// <summary>
     /// Skip empty lines and comments
     /// </summary>
-    /// <returns>True if a non-empty, non-comment line was found</returns>
     protected bool SkipEmptyLinesAndComments()
     {
         while (Context.HasMoreLines)
@@ -218,5 +208,57 @@ public abstract class BaseParser
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Parse entity name with inheritance information
+    /// </summary>
+    /// <typeparam name="T">Entity type with Name and Inherits properties</typeparam>
+    protected void ParseEntityNameWithInheritance<T>(T entity, string namePart) where T : class
+    {
+        // Get property accessors via reflection
+        var nameProperty = typeof(T).GetProperty("Name");
+        var inheritsProperty = typeof(T).GetProperty("Inherits");
+
+        if (nameProperty == null || inheritsProperty == null)
+        {
+            AppLog.Warning("Type {Type} doesn't have Name or Inherits property", typeof(T).Name);
+            return;
+        }
+
+        if (namePart.Contains(':'))
+        {
+            var inheritanceParts = namePart.Split(':', StringSplitOptions.RemoveEmptyEntries);
+            nameProperty.SetValue(entity, inheritanceParts[0].Trim());
+
+            if (inheritanceParts.Length > 1)
+            {
+                var inheritsList = inheritanceParts[1].Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(i => i.Trim())
+                    .ToList();
+
+                // Get the current inherits list if it exists
+                var currentInherits = inheritsProperty.GetValue(entity) as IList<string>;
+                if (currentInherits != null)
+                {
+                    foreach (var item in inheritsList)
+                    {
+                        currentInherits.Add(item);
+                    }
+                }
+                else
+                {
+                    // Create a new list if one doesn't exist
+                    inheritsProperty.SetValue(entity, inheritsList);
+                }
+
+                AppLog.Debug("Entity {EntityName} inherits from: {InheritanceList}",
+                    nameProperty.GetValue(entity), string.Join(", ", inheritsList));
+            }
+        }
+        else
+        {
+            nameProperty.SetValue(entity, namePart);
+        }
     }
 }

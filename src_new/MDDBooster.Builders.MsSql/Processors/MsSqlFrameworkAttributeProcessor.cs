@@ -1,7 +1,7 @@
 ﻿using MDDBooster.Models;
 using MDDBooster.Processors;
 
-namespace MDDBooster.Builders.MsSql;
+namespace MDDBooster.Builders.MsSql.Processors;
 
 public class MsSqlFrameworkAttributeProcessor : IModelProcessor
 {

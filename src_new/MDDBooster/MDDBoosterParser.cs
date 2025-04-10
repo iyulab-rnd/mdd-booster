@@ -1,5 +1,6 @@
 ﻿using MDDBooster.Models;
 using MDDBooster.Parsers;
+using MDDBooster.Processors;
 
 namespace MDDBooster;
 
@@ -10,8 +11,20 @@ public class MDDBoosterParser
 
     public MDDBoosterParser(MDDParserOptions options = null)
     {
-        _baseParser = new M3LParser.M3LParser();
+        // Configure the base parser to NOT apply default inheritance
+        var parserOptions = new M3LParser.M3LParserOptions
+        {
+            ResolveInheritance = false // Disable built-in inheritance resolution
+        };
+
+        _baseParser = new M3LParser.M3LParser(parserOptions);
         _options = options ?? new MDDParserOptions();
+
+        // Always add the InheritanceProcessor
+        if (!_options.ModelProcessors.Any(p => p is InheritanceProcessor))
+        {
+            _options.ModelProcessors.Add(new InheritanceProcessor());
+        }
 
         // Add default framework attribute parsers if none are provided
         if (!_options.FrameworkAttributeParsers.Any())

@@ -15,6 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\MDDBooster.Builders.ModelProject\MDDBooster.Builders.ModelProject.csproj" />
     <ProjectReference Include="..\MDDBooster.Builders.MsSql\MDDBooster.Builders.MsSql.csproj" />
   </ItemGroup>
 

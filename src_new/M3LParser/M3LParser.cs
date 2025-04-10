@@ -12,7 +12,6 @@ public class M3LParser
     /// <summary>
     /// Initialize a new M3L parser
     /// </summary>
-    /// <param name="options">Parser options</param>
     public M3LParser(M3LParserOptions options = null)
     {
         _options = options ?? new M3LParserOptions();
@@ -21,8 +20,6 @@ public class M3LParser
     /// <summary>
     /// Parse an M3L file from a file path
     /// </summary>
-    /// <param name="filePath">Path to the M3L file</param>
-    /// <returns>The parsed document</returns>
     public M3LDocument Parse(string filePath)
     {
         AppLog.Information("Parsing file: {FilePath}", filePath);
@@ -43,8 +40,6 @@ public class M3LParser
     /// <summary>
     /// Parse M3L content from a string
     /// </summary>
-    /// <param name="content">The M3L content to parse</param>
-    /// <returns>The parsed document</returns>
     public M3LDocument ParseContent(string content)
     {
         AppLog.Debug("Beginning content parsing");

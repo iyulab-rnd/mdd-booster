@@ -12,7 +12,6 @@ public class RelationParser : BaseParser
     /// <summary>
     /// Parse a relation definition
     /// </summary>
-    /// <returns>The parsed relation or null if line is not a relation definition</returns>
     public M3LRelation Parse()
     {
         var currentLine = Context.CurrentLineTrimmed;

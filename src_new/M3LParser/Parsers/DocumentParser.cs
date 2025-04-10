@@ -19,7 +19,6 @@ public class DocumentParser : BaseParser
     /// <summary>
     /// Parse the entire document
     /// </summary>
-    /// <returns>The parsed document</returns>
     public M3LDocument Parse()
     {
         AppLog.Debug("Beginning document parsing");
@@ -83,6 +82,9 @@ public class DocumentParser : BaseParser
                 Context.NextLine();
             }
         }
+
+        // Don't apply default inheritance here, it should be handled by the InheritanceProcessor
+        // to avoid circular references
 
         AppLog.Information("Parsing completed: Found {ModelCount} models, {InterfaceCount} interfaces, {EnumCount} enums",
             Context.Document.Models.Count, Context.Document.Interfaces.Count, Context.Document.Enums.Count);

@@ -17,8 +17,6 @@ public class InterfaceParser : BaseParser
     /// <summary>
     /// Parse an interface definition
     /// </summary>
-    /// <param name="definitionLine">Line containing the interface definition</param>
-    /// <returns>The parsed interface</returns>
     public M3LInterface Parse(string definitionLine)
     {
         var interface_ = new M3LInterface();

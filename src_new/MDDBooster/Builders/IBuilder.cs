@@ -20,9 +20,6 @@ public interface IBuilder
     /// <summary>
     /// Process an MDD document with the provided configuration
     /// </summary>
-    /// <param name="document">The document to process</param>
-    /// <param name="config">Builder-specific configuration</param>
-    /// <returns>True if successful, false otherwise</returns>
     bool Process(MDDDocument document, IBuilderConfig config);
 }
 

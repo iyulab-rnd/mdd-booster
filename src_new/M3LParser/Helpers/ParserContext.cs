@@ -1,6 +1,4 @@
-﻿using M3LParser.Models;
-
-namespace M3LParser.Helpers;
+﻿namespace M3LParser.Helpers;
 
 /// <summary>
 /// Maintains state and context during the parsing process
@@ -25,7 +23,6 @@ public class ParserContext
     /// <summary>
     /// Initialize a new parsing context with the given content
     /// </summary>
-    /// <param name="content">The content to parse</param>
     public ParserContext(string content)
     {
         Lines = content.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
@@ -46,7 +43,6 @@ public class ParserContext
     /// <summary>
     /// Advance to the next line
     /// </summary>
-    /// <returns>True if there is a next line, false if end of content</returns>
     public bool NextLine()
     {
         CurrentLineIndex++;
@@ -61,7 +57,6 @@ public class ParserContext
     /// <summary>
     /// Peek at the next line without advancing
     /// </summary>
-    /// <returns>The next line, or empty string if at end</returns>
     public string PeekNextLine()
     {
         return (CurrentLineIndex + 1 < Lines.Length) ? Lines[CurrentLineIndex + 1] : string.Empty;
@@ -70,9 +65,6 @@ public class ParserContext
     /// <summary>
     /// Get a range of lines from the content
     /// </summary>
-    /// <param name="startIndex">Starting line index</param>
-    /// <param name="count">Number of lines</param>
-    /// <returns>Array of lines</returns>
     public string[] GetLineRange(int startIndex, int count)
     {
         if (startIndex < 0 || startIndex >= Lines.Length)
